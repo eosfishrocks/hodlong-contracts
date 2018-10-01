@@ -4,6 +4,7 @@
 #include <eosiolib/asset.hpp>
 #include <eosiolib/contract.hpp>
 #include <string>
+#include "Users.hpp"
 
 namespace hodlong {
     using namespace eosio;
@@ -28,6 +29,7 @@ namespace hodlong {
             uint64_t bandwidth_allocated;
             uint64_t max_seeders;
             uint64_t paid_rate;
+            bool self_host;
             vector <uint64_t> accepted_seeders;
             uint64_t primary_key() const { return storage_id; }
 
@@ -72,6 +74,10 @@ namespace hodlong {
 
         // @abi action
         void addstats(const account_name from, const account_name to, uint64_t storage_id, bool seeder, uint64_t amount);
+
+        // @abi action
+
+        void deletestats(const account_name account, uint64_t storage_id);
 
         void apply(uint64_t receiver, uint64_t code, uint64_t action);
 

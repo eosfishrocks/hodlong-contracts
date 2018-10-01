@@ -38,7 +38,7 @@ namespace hodlong {
 
             uint64_t primary_key() const { return account_name; }
 
-            EOSLIB_SERIALIZE(user, (account_name)(pub_key)(ownedObjects)(seededObjects));
+            EOSLIB_SERIALIZE(user, (account_name)a(pub_key)(ownedObjects)(seededObjects));
         };
         typedef multi_index<N(user), user> userIndex;
     };
