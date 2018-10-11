@@ -1,0 +1,1 @@
+//usr/local/bin/eosio-ld  CMakeFiles/hodlong.wasm.dir/contracts/Marketplace.cpp.o -o hodlong.wasm 

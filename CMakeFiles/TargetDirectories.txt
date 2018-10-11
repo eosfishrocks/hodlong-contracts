@@ -1,0 +1,3 @@
+/_work/hodlong-contracts/CMakeFiles/rebuild_cache.dir
+/_work/hodlong-contracts/CMakeFiles/edit_cache.dir
+/_work/hodlong-contracts/CMakeFiles/hodlong.wasm.dir

@@ -1,14 +1,15 @@
+#include "Users.cpp"
 #include "Marketplace.hpp"
 
-namespace hodlong {
-    void Marketplace::buy(account_name buyer, uint64_t storage_id) {
+namespace Hodlong {
+    void Holdong::buy(account_name buyer, uint64_t storage_id) {
         storageIndex storage(_self, _self);
 
         auto iterator = storage.find(storage_id);
         eosio_assert(iterator != storage.end(), "The bid not found");
         eosio_assert(iterator->accepted_seeders.size() >= iterator->max_seeders, "The storage object has the max amount of seeders");
     }
-    void Marketplace::createobj(account_name account, hodlong::Marketplace::storage newObj) {
+    void Holdong::createobj(account_name account, hodlong::Holdong::storage newObj) {
         require_auth(account);
 
         storageIndex objs(_self, _self);
@@ -20,7 +21,7 @@ namespace hodlong {
             obj = newObj;
         });
     }
-    void Marketplace::addstats(const account_name from, const account_name to, uint64_t storage_id, bool seeder, uint64_t amount) {
+    void Holdong::addstats(const account_name from, const account_name to, uint64_t storage_id, bool seeder, uint64_t amount) {
         require_auth(from);
 
         pStatsIndex pStats(_self, _self);
@@ -76,10 +77,6 @@ namespace hodlong {
             }
         }
     }
-    uint64_t Marketplace::max64(uint64_t value1, uint64_t value2) {
-        if (value1 > value2) return value1;
-        else return value2;
-    }
 
     void deletestats(const account_name account, uint64_t storage_id) {
         require_auth(account);
@@ -89,11 +86,4 @@ namespace hodlong {
         eosio_assert(iterator != storage.end(), "Obj does not exist");
         storage.modify(iterator, account, [&](auto& storage_object) { storage.inventory.erase(i); });
     }
-
-
-    void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-        if (code == N(eosio.token) && action == N(transfer)) {
-            // Do action
-        }
-    }
-}
+};

@@ -14,19 +14,18 @@ namespace hodlong {
 
         Trackers(account_name self) : contract(self) {}
 
-        //@abi action
+        [[eosio::action]]
         void add(const account_name account, string& url);
 
-        //@abi action
+        [[eosio::action]]
         void remove(const account_name account, string& url);
 
-        //@abi action
+        [[eosio::action]]
         void update(const account_name account, string& url);
 
     private:
 
-        //@abi table tracker i64
-        struct tracker {
+        struct [[eosio::table]] tracker {
             uint64_t tracker_id;
             string url;
             account_name account;
