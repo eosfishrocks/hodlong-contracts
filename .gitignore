@@ -3,3 +3,5 @@
 **/*.abi
 **/*.wast
 CMakeFiles
+CMakeCache.txt
+cmake-build-debug
