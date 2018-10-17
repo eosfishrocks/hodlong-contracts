@@ -1,6 +1,10 @@
+#include <eosiolib/eosio.hpp>
 
 namespace Hodlong {
-    void Hodlong::add(const account_name account, string &pub_key) {
+    using std::string;
+    using std::vector;
+
+    void Hodlong::add(const uint64_t account, string &pub_key) {
         require_auth(account);
         userIndex users(_self, _self);
 
@@ -8,14 +12,14 @@ namespace Hodlong {
         eosio_assert(iterator == users.end(), "Address for account already exists");
 
         users.emplace(account, [&](auto &user) {
-            user.account_name = account;
+            user.uint64_t = account;
             user.pub_key = pub_key;
 
         });
 
     }
 
-    void Hodlong::createobj(account_name account, uint64_t storageId) {
+    void Hodlong::createobj(const uint64_t account, uint64_t storageId) {
         require_auth(account);
         userIndex users(_self, _self);
 
@@ -27,7 +31,7 @@ namespace Hodlong {
         });
     }
 
-    void Hodlong::addseed(account_name account, uint64_t storageId) {
+    void Hodlong::addseed(uint64_t account, uint64_t storageId) {
         require_auth(account);
         userIndex users(_self, _self);
 
@@ -38,7 +42,7 @@ namespace Hodlong {
             user.seededObjects.push_back(storageId);
         });
     }
-    void Hodlong::removeseed(const account_name account, uint64_t storageId) {
+    void Hodlong::removeseed(const uint64_t account, uint64_t storageId) {
         require_auth(account);
         userIndex users(_self, _self);
 

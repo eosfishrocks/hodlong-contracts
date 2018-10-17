@@ -1,15 +1,15 @@
+#include "Hodlong.hpp"
 #include "Users.cpp"
-#include "Marketplace.hpp"
 
 namespace Hodlong {
-    void Holdong::buy(account_name buyer, uint64_t storage_id) {
+    void Hodlong::buy(uint64_t buyer, uint64_t storage_id) {
         storageIndex storage(_self, _self);
 
         auto iterator = storage.find(storage_id);
         eosio_assert(iterator != storage.end(), "The bid not found");
         eosio_assert(iterator->accepted_seeders.size() >= iterator->max_seeders, "The storage object has the max amount of seeders");
     }
-    void Holdong::createobj(account_name account, hodlong::Holdong::storage newObj) {
+    void Hodlong::createobj(uint64_t account, storage newObj) {
         require_auth(account);
 
         storageIndex objs(_self, _self);
@@ -21,7 +21,7 @@ namespace Hodlong {
             obj = newObj;
         });
     }
-    void Holdong::addstats(const account_name from, const account_name to, uint64_t storage_id, bool seeder, uint64_t amount) {
+    void Hodlong::addstats(const uint64_t from, const uint64_t to, uint64_t storage_id, bool seeder, uint64_t amount) {
         require_auth(from);
 
         pStatsIndex pStats(_self, _self);
@@ -78,7 +78,7 @@ namespace Hodlong {
         }
     }
 
-    void deletestats(const account_name account, uint64_t storage_id) {
+    void deletestats(const uint64_t account, uint64_t storage_id) {
         require_auth(account);
         storageIndex storage(_self, _self);
 

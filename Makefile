@@ -111,44 +111,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named hodlong.wasm
+# Target rules for targets named Hodlong.wasm
 
 # Build rule for target.
-hodlong.wasm: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 hodlong.wasm
-.PHONY : hodlong.wasm
+Hodlong.wasm: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 Hodlong.wasm
+.PHONY : Hodlong.wasm
 
 # fast build rule for target.
-hodlong.wasm/fast:
-	$(MAKE) -f CMakeFiles/hodlong.wasm.dir/build.make CMakeFiles/hodlong.wasm.dir/build
-.PHONY : hodlong.wasm/fast
+Hodlong.wasm/fast:
+	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/build
+.PHONY : Hodlong.wasm/fast
 
-contracts/Marketplace.o: contracts/Marketplace.cpp.o
+contracts/Hodlong.o: contracts/Hodlong.cpp.o
 
-.PHONY : contracts/Marketplace.o
+.PHONY : contracts/Hodlong.o
 
 # target to build an object file
-contracts/Marketplace.cpp.o:
-	$(MAKE) -f CMakeFiles/hodlong.wasm.dir/build.make CMakeFiles/hodlong.wasm.dir/contracts/Marketplace.cpp.o
-.PHONY : contracts/Marketplace.cpp.o
+contracts/Hodlong.cpp.o:
+	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/contracts/Hodlong.cpp.o
+.PHONY : contracts/Hodlong.cpp.o
 
-contracts/Marketplace.i: contracts/Marketplace.cpp.i
+contracts/Hodlong.i: contracts/Hodlong.cpp.i
 
-.PHONY : contracts/Marketplace.i
+.PHONY : contracts/Hodlong.i
 
 # target to preprocess a source file
-contracts/Marketplace.cpp.i:
-	$(MAKE) -f CMakeFiles/hodlong.wasm.dir/build.make CMakeFiles/hodlong.wasm.dir/contracts/Marketplace.cpp.i
-.PHONY : contracts/Marketplace.cpp.i
+contracts/Hodlong.cpp.i:
+	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/contracts/Hodlong.cpp.i
+.PHONY : contracts/Hodlong.cpp.i
 
-contracts/Marketplace.s: contracts/Marketplace.cpp.s
+contracts/Hodlong.s: contracts/Hodlong.cpp.s
 
-.PHONY : contracts/Marketplace.s
+.PHONY : contracts/Hodlong.s
 
 # target to generate assembly for a file
-contracts/Marketplace.cpp.s:
-	$(MAKE) -f CMakeFiles/hodlong.wasm.dir/build.make CMakeFiles/hodlong.wasm.dir/contracts/Marketplace.cpp.s
-.PHONY : contracts/Marketplace.cpp.s
+contracts/Hodlong.cpp.s:
+	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/contracts/Hodlong.cpp.s
+.PHONY : contracts/Hodlong.cpp.s
 
 # Help Target
 help:
@@ -158,10 +158,10 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... hodlong.wasm"
-	@echo "... contracts/Marketplace.o"
-	@echo "... contracts/Marketplace.i"
-	@echo "... contracts/Marketplace.s"
+	@echo "... Hodlong.wasm"
+	@echo "... contracts/Hodlong.o"
+	@echo "... contracts/Hodlong.i"
+	@echo "... contracts/Hodlong.s"
 .PHONY : help
 
 
