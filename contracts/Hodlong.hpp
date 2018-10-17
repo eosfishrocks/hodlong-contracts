@@ -6,7 +6,8 @@ using std::vector;
 
 class Hodlong : public eosio::contract{
 
-    public: Hodlong(uint64_t self) : eosio::contract(self){}
+    public:
+        Hodlong(name self) : eosio::contract(self){}
 
         TABLE users {
             uint64_t account_name;
@@ -25,10 +26,10 @@ class Hodlong : public eosio::contract{
             string filename;
             string file_size;
             string checksum;
-            vector <uint64_t> acceptedSeeders;
-            uint64_t primary_key() const { return account; }
+            vector <uint64_t> accepted_seeders;
+            uint64_t primary_key() const { return storage_id; }
 
-            EOSLIB_SERIALIZE(storage, (account)(filename)(file_size)(checksum)
+            EOSLIB_SERIALIZE(storage, (storage_id)(account)(filename)(file_size)(checksum)(accepted_seeders)
             );
         };
 
@@ -60,7 +61,7 @@ class Hodlong : public eosio::contract{
             )
         };
 
-        typedef eosio::multi_index<N(users), users > userIndex;
+        typedef eosio::multi_index< "users"_n, users > userIndex;
         typedef eosio::multi_index< "storage"_n, Hodlong::storage > storageIndex;
         typedef eosio::multi_index< "stats"_n, Hodlong::stats > statsIndex;
         typedef eosio::multi_index< "pstats"_n, Hodlong::pstats > pStatsIndex;
@@ -68,28 +69,19 @@ class Hodlong : public eosio::contract{
 
         ACTION buy(uint64_t buyer, uint64_t bidId);
 
-
-        ACTION createobj(uint64_t account, storage obj);
-
-        
         ACTION addstats(const uint64_t from, const uint64_t to, uint64_t storage_id, bool seeder, uint64_t amount);
 
-        
         ACTION deletestats(const uint64_t account, uint64_t storage_id);
 
-        
         ACTION add(const uint64_t account, string &pub_key);
 
-        
         ACTION createobj(const uint64_t account, uint64_t storageId);
 
-        
         ACTION addseed(const uint64_t account, uint64_t storageId);
 
-        
         ACTION removeseed(const uint64_t account, uint64_t storageId);
 
-    }
 
-    EOSIO_DISPATCH(hodlong,(buy)(createobj)(addstats)(deletestats)(add));
+
+    EOSIO_DISPATCH(Hodlong,(buy)(createobj)(addstats)(deletestats)(add));
 }
