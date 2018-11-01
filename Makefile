@@ -39,10 +39,10 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/local/Cellar/cmake/3.12.0/bin/cmake
+CMAKE_COMMAND = /usr/local/Cellar/cmake/3.12.3/bin/cmake
 
 # The command to remove a file.
-RM = /usr/local/Cellar/cmake/3.12.0/bin/cmake -E remove -f
+RM = /usr/local/Cellar/cmake/3.12.3/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /_work/hodlong-contracts
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/local/Cellar/cmake/3.12.0/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/local/Cellar/cmake/3.12.3/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -111,17 +111,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Hodlong.wasm
+# Target rules for targets named bpfish.hodlong.wasm
 
 # Build rule for target.
-Hodlong.wasm: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 Hodlong.wasm
-.PHONY : Hodlong.wasm
+bpfish.hodlong.wasm: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 bpfish.hodlong.wasm
+.PHONY : bpfish.hodlong.wasm
 
 # fast build rule for target.
-Hodlong.wasm/fast:
-	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/build
-.PHONY : Hodlong.wasm/fast
+bpfish.hodlong.wasm/fast:
+	$(MAKE) -f CMakeFiles/bpfish.hodlong.wasm.dir/build.make CMakeFiles/bpfish.hodlong.wasm.dir/build
+.PHONY : bpfish.hodlong.wasm/fast
 
 contracts/Hodlong.o: contracts/Hodlong.cpp.o
 
@@ -129,7 +129,7 @@ contracts/Hodlong.o: contracts/Hodlong.cpp.o
 
 # target to build an object file
 contracts/Hodlong.cpp.o:
-	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/contracts/Hodlong.cpp.o
+	$(MAKE) -f CMakeFiles/bpfish.hodlong.wasm.dir/build.make CMakeFiles/bpfish.hodlong.wasm.dir/contracts/Hodlong.cpp.o
 .PHONY : contracts/Hodlong.cpp.o
 
 contracts/Hodlong.i: contracts/Hodlong.cpp.i
@@ -138,7 +138,7 @@ contracts/Hodlong.i: contracts/Hodlong.cpp.i
 
 # target to preprocess a source file
 contracts/Hodlong.cpp.i:
-	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/contracts/Hodlong.cpp.i
+	$(MAKE) -f CMakeFiles/bpfish.hodlong.wasm.dir/build.make CMakeFiles/bpfish.hodlong.wasm.dir/contracts/Hodlong.cpp.i
 .PHONY : contracts/Hodlong.cpp.i
 
 contracts/Hodlong.s: contracts/Hodlong.cpp.s
@@ -147,7 +147,7 @@ contracts/Hodlong.s: contracts/Hodlong.cpp.s
 
 # target to generate assembly for a file
 contracts/Hodlong.cpp.s:
-	$(MAKE) -f CMakeFiles/Hodlong.wasm.dir/build.make CMakeFiles/Hodlong.wasm.dir/contracts/Hodlong.cpp.s
+	$(MAKE) -f CMakeFiles/bpfish.hodlong.wasm.dir/build.make CMakeFiles/bpfish.hodlong.wasm.dir/contracts/Hodlong.cpp.s
 .PHONY : contracts/Hodlong.cpp.s
 
 # Help Target
@@ -158,7 +158,7 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... Hodlong.wasm"
+	@echo "... bpfish.hodlong.wasm"
 	@echo "... contracts/Hodlong.o"
 	@echo "... contracts/Hodlong.i"
 	@echo "... contracts/Hodlong.s"
