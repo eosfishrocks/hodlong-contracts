@@ -2,6 +2,7 @@
 .idea
 **/*.abi
 **/*.wast
+**/*.wasm
 CMakeFiles
 CMakeCache.txt
 cmake-build-debug
