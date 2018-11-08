@@ -1,28 +1,30 @@
 #pragma once
 #include <eosiolib/eosio.hpp>
+#include <eosiolib/asset.hpp>
+
+using namespace eosio;
+using std::string;
+using std::vector;
 
 namespace bpfish{
-    using namespace eosio;
-    using std::string;
-    using std::vector;
-
     CONTRACT hodlong : public eosio::contract{
 
         public:
             using contract::contract;
 
-            TABLE users {
+            TABLE users_t {
                 name account_name;
                 string pub_key;
+                asset balance;
                 vector <uint64_t> owned_objects;
                 vector <uint64_t> seeded_objects;
 
                 uint64_t primary_key() const { return account_name.value; }
 
-                EOSLIB_SERIALIZE(users, (account_name)(pub_key)(owned_objects)(seeded_objects));
+                EOSLIB_SERIALIZE(users_t, (account_name)(pub_key)(balance)(owned_objects)(seeded_objects));
             };
 
-            TABLE storage {
+            TABLE storage_t {
                 name storage_id;
                 name account;
                 string filename;
@@ -33,7 +35,7 @@ namespace bpfish{
                 uint64_t bandwidth_used;
                 uint64_t primary_key() const { return storage_id.value; }
 
-                EOSLIB_SERIALIZE(storage, (storage_id)(account)(filename)(file_size)(checksum)
+                EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
                     (accepted_seeders)(max_seeders));
             };
 
@@ -42,60 +44,60 @@ namespace bpfish{
                 name to;
                 uint64_t amount;
                 time_t submitted;
-                bool seeder;
             };
 
-            TABLE stats {
+            TABLE stats_t {
                 name stats_id;
                 name storage_id;
+                name account;
                 uint64_t amount;
 
                 uint64_t primary_key() const { return stats_id.value; }
 
-                EOSLIB_SERIALIZE(stats, (stats_id)(storage_id)(amount)
+                EOSLIB_SERIALIZE(stats_t, (stats_id)(account)(storage_id)(amount)
                 )
             };
 
-            TABLE pstats {
+            TABLE pstats_t {
                 name pstats_id;
                 name storage_id;
                 vector <stat> pending_stats;
 
                 uint64_t primary_key() const { return pstats_id.value; }
 
-                EOSLIB_SERIALIZE(pstats, (pstats_id)(storage_id)(pending_stats)
+                EOSLIB_SERIALIZE(pstats_t, (pstats_id)(storage_id)(pending_stats)
                 )
             };
 
-            typedef eosio::multi_index< "users"_n, users > userIndex;
-            typedef eosio::multi_index< "stats"_n, stats > statsIndex;
-            typedef eosio::multi_index< "pstats"_n, pstats > pStatsIndex;
+            typedef eosio::multi_index< "users"_n, users_t > users;
+            typedef eosio::multi_index< "stats"_n, stats_t > stats;
+            typedef eosio::multi_index< "pstats"_n, pstats_t > pstats;
 
-            typedef eosio::multi_index< "storage"_n, storage > storageIndex;
+            typedef eosio::multi_index< "storage"_n, storage_t > storage;
 
             ACTION buy(name buyer, name storage_id) {
-                storageIndex storage(_self, storage_id.value);
+                storage storage(_self, storage_id.value);
 
                 auto iterator = storage.find(storage_id.value);
                 eosio_assert(iterator != storage.end(), "The bid not found");
                 eosio_assert(iterator->accepted_seeders.size() >= iterator->max_seeders, "The storage object has the max amount of seeders");
             }
-            ACTION createobj(name account, storage newObj) {
+            ACTION createobj(name account, storage_t newObj) {
                 require_auth(account.value);
 
-                storageIndex objs(_self, account.value);
+                storage storage(_self, account.value);
 
-                auto iterator = objs.find(newObj.storage_id.value);
-                eosio_assert(iterator == objs.end(), "Obj for this ID already exists");
+                auto iterator = storage.find(newObj.storage_id.value);
+                eosio_assert(iterator == storage.end(), "Obj for this ID already exists");
 
-                objs.emplace(account, [&](auto &obj) {
-                    obj = newObj;
+                storage.emplace(account, [&](auto &storage_obj) {
+                    storage_obj = newObj;
                 });
             }
             ACTION addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount) {
                 require_auth(from);
 
-                pStatsIndex pStats(_self, storage_id.value);
+                pstats pStats(_self, storage_id.value);
                 time_t date = now();
                 stat client_stat = {from, to, amount, seeder};
 
@@ -115,7 +117,7 @@ namespace bpfish{
                 }
                 //may need to break into deferred actions for delete depending on mainnet processing times
                 if (foundStat) {
-                    storageIndex storage(_self, storage_id.value);
+                    storage storage(_self, storage_id.value);
                     auto storageIterator = storage.find(storage_id.value);
                     eosio_assert(storageIterator == storage.end(), "The storage id is not found");
 
@@ -135,6 +137,12 @@ namespace bpfish{
                                     if (pstats->pending_stats[v1].amount > pstats->pending_stats[v3].amount) {
                                         verifiedAmount = pstats->pending_stats[v3].amount;
                                         verifiedAmountModifier = pstats->pending_stats[v1].amount - pstats->pending_stats[v3].amount;
+                                        // Search for user account to add
+                                        // #TODO Update amount to multiplier times active stats
+                                        action(permission_level{ from, "active"_n },
+                                                      "eosio.token"_n, "transfer"_n,
+                                                      std::make_tuple(_self , to, amount, std::string(""))
+                                        ).send();
                                     } else {
                                         verifiedAmount = pstats->pending_stats[v1].amount;
                                         verifiedAmountModifier = pstats->pending_stats[v3].amount - pstats->pending_stats[v1].amount;
@@ -150,7 +158,7 @@ namespace bpfish{
             }
             ACTION add(const name account, string &pub_key) {
                 require_auth(account);
-                userIndex users(_self, account.value);
+                users users(_self, account.value);
 
                 auto iterator = users.find(account.value);
                 eosio_assert(iterator == users.end(), "Address for account already exists");
@@ -164,7 +172,7 @@ namespace bpfish{
             }
             ACTION addseed(name account, name storage_id) {
                 require_auth(account);
-                userIndex users(_self, storage_id.value);
+                users users(_self, storage_id.value);
 
                 auto iterator = users.find(account.value);
                 eosio_assert(iterator != users.end(), "Address for account not found");
@@ -175,7 +183,7 @@ namespace bpfish{
             }
             ACTION removeseed(const name account, name storageId) {
                 require_auth(account);
-                userIndex users(_self, account.value);
+                users users(_self, account.value);
 
                 auto iterator = users.begin();
                 eosio_assert(iterator != users.end(), "Address for account not found");
@@ -187,6 +195,48 @@ namespace bpfish{
                         user.seeded_objects.erase(position);
                 });
             }
+            ACTION addfunds(name from, name to, asset quantity, string memo) {
+                if (from == _self)
+                    return;
+
+                users users(_self, _self.value);
+                auto user = users.find(from.value);
+                eosio_assert (user != users.end(), "User does not exist");
+
+                // If using a different token, please update name
+                if (_code != name("EOS"_n))
+                    return;
+                users.modify(user, from, [&](auto& newuser) {
+                    newuser.balance += quantity;
+                });
+
+            }
+            ACTION removefunds(name to, asset quantity, string memo){
+                users users(_self, _self.value);
+                auto user = users.find(to.value);
+                eosio_assert(user != users.end(), "User does not exist");
+                eosio_assert(user->balance <= quantity, "You do not have the required balance to remove the funds");
+                action(permission_level{ _self, "active"_n },
+                        "eosio.token"_n, "transfer"_n,
+                        std::make_tuple(_self, to, quantity, std::string("Transfer of funds out of hodlong contract"))
+                ).send();
+
+            }
+
+
     };
 }
-EOSIO_DISPATCH(bpfish::hodlong, (buy)(createobj)(addstats)(add)(addseed)(removeseed))
+extern "C" {
+[[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+    if (action == "addfunds"_n.value && code != receiver) {
+        execute_action(eosio::name(receiver), eosio::name(code), &bpfish::hodlong::addfunds);
+    }
+
+    if (code == receiver) {
+        switch (action) {
+            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (buy)(createobj)(addstats)(add)(addseed)(removeseed)(addfunds))
+        }
+    }
+    eosio_exit(0);
+}
+}
