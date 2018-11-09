@@ -76,7 +76,7 @@ namespace bpfish{
             typedef eosio::multi_index< "storage"_n, storage_t > storage;
 
             ACTION buy(name buyer, name storage_id) {
-                storage storage(_self, storage_id.value);
+                storage storage(_self, _self.value);
 
                 auto iterator = storage.find(storage_id.value);
                 eosio_assert(iterator != storage.end(), "The bid not found");
@@ -85,7 +85,7 @@ namespace bpfish{
             ACTION createobj(name account, storage_t newObj) {
                 require_auth(account.value);
 
-                storage storage(_self, account.value);
+                storage storage(_self, _self.value);
 
                 auto iterator = storage.find(newObj.storage_id.value);
                 eosio_assert(iterator == storage.end(), "Obj for this ID already exists");
@@ -97,7 +97,7 @@ namespace bpfish{
             ACTION addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount) {
                 require_auth(from);
 
-                pstats pStats(_self, storage_id.value);
+                pstats pStats(_self, _self.value);
                 time_t date = now();
                 stat client_stat = {from, to, amount, seeder};
 
@@ -158,7 +158,7 @@ namespace bpfish{
             }
             ACTION add(const name account, string &pub_key) {
                 require_auth(account);
-                users users(_self, account.value);
+                users users(_self, _self.value);
 
                 auto iterator = users.find(account.value);
                 eosio_assert(iterator == users.end(), "Address for account already exists");
@@ -172,7 +172,7 @@ namespace bpfish{
             }
             ACTION addseed(name account, name storage_id) {
                 require_auth(account);
-                users users(_self, storage_id.value);
+                users users(_self, _self.value);
 
                 auto iterator = users.find(account.value);
                 eosio_assert(iterator != users.end(), "Address for account not found");
@@ -183,7 +183,7 @@ namespace bpfish{
             }
             ACTION removeseed(const name account, name storageId) {
                 require_auth(account);
-                users users(_self, account.value);
+                users users(_self, _self.value);
 
                 auto iterator = users.begin();
                 eosio_assert(iterator != users.end(), "Address for account not found");
@@ -227,16 +227,16 @@ namespace bpfish{
     };
 }
 extern "C" {
-[[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-    if (action == "addfunds"_n.value && code != receiver) {
-        execute_action(eosio::name(receiver), eosio::name(code), &bpfish::hodlong::addfunds);
-    }
-
-    if (code == receiver) {
-        switch (action) {
-            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (buy)(createobj)(addstats)(add)(addseed)(removeseed)(addfunds))
+    [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+        if (action == "addfunds"_n.value && code != receiver) {
+            execute_action(eosio::name(receiver), eosio::name(code), &bpfish::hodlong::addfunds);
         }
+
+        if (code == receiver) {
+            switch (action) {
+                EOSIO_DISPATCH_HELPER(bpfish::hodlong, (buy)(createobj)(addstats)(add)(addseed)(removeseed)(addfunds))
+            }
+        }
+        eosio_exit(0);
     }
-    eosio_exit(0);
-}
 }
