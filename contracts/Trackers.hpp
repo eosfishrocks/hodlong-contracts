@@ -20,16 +20,16 @@ namespace bpfish {
 
     private:
 
-        TABLE wtrackers_t {
+        TABLE wtracker_t {
             uint64_t tracker_id;
             string url;
             name account;
 
             uint64_t primary_key() const { return tracker_id; }
 
-            EOSLIB_SERIALIZE(wtrackers_t, (tracker_id)(url)(account));
+            EOSLIB_SERIALIZE(wtracker_t, (tracker_id)(url)(account));
         };
-        typedef eosio::multi_index< "wtracker"_n, wtrackers_t > wtrackers;
+        typedef eosio::multi_index< "wtrackers"_n, wtracker_t > wtrackers;
     };
 
     EOSIO_DISPATCH(bpfish::trackers, (add)(remove)(update));
