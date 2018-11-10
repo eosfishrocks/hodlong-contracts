@@ -5,3 +5,5 @@ find_package(eosio.cdt)
 
 ### generate both the wasm and abi
 add_contract( hodlong hodlong contracts/Hodlong.cpp )
+
+add_contract( trackers trackers contracts/Trackers.cpp )

@@ -3,41 +3,34 @@
 #include <string>
 #include <vector>
 
-namespace hodlong {
-    using namespace eosio;
-    using std::string;
+using namespace eosio;
+using std::string;
 
-    class Trackers : public contract {
-        using contract::contract;
+namespace bpfish {
+    CONTRACT trackers : public eosio::contract {
 
     public:
+        using contract::contract;
 
-        Trackers(account_name self) : contract(self) {}
-
-        [[eosio::action]]
-        void add(const account_name account, string& url);
-
-        [[eosio::action]]
-        void remove(const account_name account, string& url);
-
-        [[eosio::action]]
-        void update(const account_name account, string& url);
+        ACTION add(const name account, string& url);
+        
+        ACTION remove(const name account);
+        
+        ACTION update(const name account, string& url);
 
     private:
 
-        struct [[eosio::table]] tracker {
+        TABLE wtrackers_t {
             uint64_t tracker_id;
             string url;
-            account_name account;
+            name account;
 
             uint64_t primary_key() const { return tracker_id; }
 
-            EOSLIB_SERIALIZE(tracker, (tracker_id)(url)(account)
-            );
+            EOSLIB_SERIALIZE(wtrackers_t, (tracker_id)(url)(account));
         };
-
-        typedef multi_index<N(tracker), tracker> trackerIndex;
+        typedef eosio::multi_index< "wtracker"_n, wtrackers_t > wtrackers;
     };
 
-    EOSIO_ABI(Trackers, (add)(remove)(update));
+    EOSIO_DISPATCH(bpfish::trackers, (add)(remove)(update));
 }

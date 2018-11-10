@@ -1,37 +1,37 @@
 #include "Trackers.hpp"
 
-namespace hodlong {
-    void Trackers::add(const account_name account, string& tracker_url){
+namespace bpfish {
+    void trackers::add(const name account, string& tracker_url){
         require_auth(account);
 
-        trackerIndex  trackers(_self, _self);
-        auto iterator = trackers.find(account);
-        eosio_assert(iterator == trackers.end(), "A tracker is already configured for this account.");
+        wtrackers  wtrackers(_self, _self.value);
+        auto iterator = wtrackers.find(account.value);
+        eosio_assert(iterator == wtrackers.end(), "A tracker is already configured for this account.");
 
-        trackers.emplace(account, [&](auto &tracker){
+        wtrackers.emplace(account, [&](auto &tracker){
             tracker.account = account;
             tracker.url = tracker_url;
         });
 
     }
-    void Trackers::remove(const account_name account, string& tracker_url){
+    void trackers::remove(const name account){
         require_auth(account);
 
-        trackerIndex  trackers(_self, _self);
-        auto iterator = trackers.find(account);
-        eosio_assert(iterator != trackers.end(), "A tracker doesn't exist for this account.");
+        wtrackers wtrackers(_self, _self.value);
+        auto iterator = wtrackers.find(account.value);
+        eosio_assert(iterator != wtrackers.end(), "A tracker doesn't exist for this account.");
 
-        trackers.erase(iterator);
+        wtrackers.erase(iterator);
     }
-    void Trackers::update(const account_name account, string& tracker_url){
+    void trackers::update(const name account, string& tracker_url){
         require_auth(account);
 
-        trackerIndex trackers(_self, _self);
+        wtrackers wtrackers(_self, _self.value);
 
-        auto iterator = trackers.find(account);
-        eosio_assert(iterator != trackers.end(), "A tracker doesn't exist for this account.");
+        auto iterator = wtrackers.find(account.value);
+        eosio_assert(iterator != wtrackers.end(), "A tracker doesn't exist for this account.");
 
-        trackers.modify(iterator, account, [&](auto& trackers) {
+        wtrackers.modify(iterator, account, [&](auto& trackers) {
             trackers.url = tracker_url;
         });
     }
