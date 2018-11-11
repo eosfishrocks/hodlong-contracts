@@ -74,7 +74,7 @@ namespace bpfish{
                 EOSLIB_SERIALIZE(pstats_t, (pstats_id)(storage_id)(pending_stats)
                 )
             };
-z
+
             typedef singleton<"settings"_n, settings_t> settings;
             typedef multi_index<"settings"_n, settings_t> dummy_for_abi; // hack until abi generator generates correct name
             typedef multi_index< "users"_n, users_t > users;
