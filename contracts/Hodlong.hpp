@@ -1,6 +1,7 @@
 #pragma once
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/asset.hpp>
+#include <eosiolib/singleton.hpp>
 
 using namespace eosio;
 using std::string;
@@ -11,6 +12,11 @@ namespace bpfish{
 
         public:
             using contract::contract;
+
+            TABLE settings_t {
+                name token_name;
+                EOSLIB_SERIALIZE(settings_t, (token_name));
+            };
 
             TABLE users_t {
                 name account_name;
@@ -68,20 +74,24 @@ namespace bpfish{
                 EOSLIB_SERIALIZE(pstats_t, (pstats_id)(storage_id)(pending_stats)
                 )
             };
+z
+            typedef singleton<"settings"_n, settings_t> settings;
+            typedef multi_index<"settings"_n, settings_t> dummy_for_abi; // hack until abi generator generates correct name
+            typedef multi_index< "users"_n, users_t > users;
+            typedef multi_index< "stats"_n, stats_t > stats;
+            typedef multi_index< "pstats"_n, pstats_t > pstats;
+            typedef multi_index< "storage"_n, storage_t > storage;
 
-            typedef eosio::multi_index< "users"_n, users_t > users;
-            typedef eosio::multi_index< "stats"_n, stats_t > stats;
-            typedef eosio::multi_index< "pstats"_n, pstats_t > pstats;
-            typedef eosio::multi_index< "storage"_n, storage_t > storage;
-
+            ACTION init(name token_name);
             ACTION buy(name buyer, name storage_id);
             ACTION createobj(name account, storage_t newObj);
             ACTION addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount);
-            ACTION addaccount(const name account, string &pub_key);
+            ACTION adduser(const name account, string &pub_key);
             ACTION addseed(name account, name storage_id);
             ACTION removeseed(const name account, name storageId);
             ACTION addfunds(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity, string memo);
+
 
     };
 }
@@ -95,7 +105,7 @@ extern "C" {
     if (code == receiver) {
         switch (action) {
             EOSIO_DISPATCH_HELPER(bpfish::hodlong,
-                                  (buy)(createobj)(addstats)(addaccount)(addseed)(removeseed)(addfunds))
+                                  (buy)(createobj)(addstats)(adduser)(addseed)(removeseed)(addfunds))
         }
     }
     eosio_exit(0);

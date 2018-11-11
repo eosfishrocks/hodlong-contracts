@@ -1,7 +1,18 @@
 #include "Hodlong.hpp"
 
 namespace bpfish {
-    void hodlong::buy(name buyer, name storage_id) {
+    ACTION hodlong::init(name x_token_name) {
+        require_auth(_self);
+
+        settings settings_table(_self, _self.value);
+        bool settings_exists = settings_table.exists();
+
+        eosio_assert(!settings_exists, "settings already defined");
+
+        settings_table.set(settings_t{x_token_name}, _self);
+    }
+
+    ACTION hodlong::buy(name buyer, name storage_id) {
         storage storage_table(_self, _self.value);
 
         auto iterator = storage_table.find(storage_id.value);
@@ -10,7 +21,7 @@ namespace bpfish {
                      "The storage object has the max amount of seeders");
     }
 
-    void hodlong::createobj(name account, storage_t newObj) {
+    ACTION hodlong::createobj(name account, storage_t newObj) {
         require_auth(account.value);
 
         storage storage_table(_self, _self.value);
@@ -23,7 +34,7 @@ namespace bpfish {
         });
     }
 
-    void hodlong::addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount) {
+    ACTION hodlong::addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount) {
         require_auth(from);
 
         pstats pstats_table(_self, _self.value);
@@ -91,7 +102,7 @@ namespace bpfish {
         }
     }
 
-    void hodlong::addaccount(const name account, string &pub_key) {
+    ACTION hodlong::adduser(const name account, string &pub_key) {
         require_auth(account);
         users users_table(_self, _self.value);
 
@@ -106,7 +117,7 @@ namespace bpfish {
 
     }
 
-    void hodlong::addseed(name account, name storage_id) {
+    ACTION hodlong::addseed(name account, name storage_id) {
         require_auth(account);
         users users_table(_self, _self.value);
 
@@ -118,7 +129,7 @@ namespace bpfish {
         });
     }
 
-    void hodlong::removeseed(const name account, name storageId) {
+    ACTION hodlong::removeseed(const name account, name storageId) {
         require_auth(account);
         users users_table(_self, _self.value);
 
@@ -133,7 +144,7 @@ namespace bpfish {
         });
     }
 
-    void hodlong::addfunds(name from, name to, asset quantity, string memo) {
+    ACTION hodlong::addfunds(name from, name to, asset quantity, string memo) {
         if (from == _self)
             return;
 
@@ -150,7 +161,7 @@ namespace bpfish {
 
     }
 
-    void hodlong::removefunds(name to, asset quantity, string memo) {
+    ACTION hodlong::removefunds(name to, asset quantity, string memo) {
         users users_table(_self, _self.value);
         auto user = users_table.find(to.value);
         eosio_assert(user != users_table.end(), "User does not exist");
