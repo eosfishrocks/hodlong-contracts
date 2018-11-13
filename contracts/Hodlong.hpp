@@ -40,10 +40,11 @@ namespace bpfish{
                 uint64_t max_seeders;
                 uint64_t bandwidth_used;
                 bool self_host;
+                uint64_t bandwidth_cost;
                 uint64_t primary_key() const { return storage_id; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
-                    (accepted_seeders)(max_seeders)(bandwidth_used)(self_host));
+                    (accepted_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost));
             };
 
             TABLE stat {
@@ -80,9 +81,9 @@ namespace bpfish{
             typedef multi_index< "pstats"_n, pstats_t > pstats;
             typedef multi_index< "storage"_n, storage_t > storage;
 
-            ACTION buy(name buyer, name storage_id);
+            ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
-                    vector<name> accepted_seeders, uint64_t max_seeders, bool self_host);
+                    vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost);
             ACTION addstats(const name from, const name to, uint64_t storage_id, bool seeder, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
             ACTION addseed(name account, name storage_id);

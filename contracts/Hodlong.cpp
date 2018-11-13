@@ -1,16 +1,24 @@
 #include "Hodlong.hpp"
 namespace bpfish{
-    ACTION hodlong::buy(name buyer, name storage_id) {
-        auto iterator = _storage.find(storage_id.value);
+    ACTION hodlong::buy(name buyer, uint64_t storage_id) {
+        auto aiter= _users.find(buyer.value);
+
+        auto iterator = _storage.find(storage_id);
+        eosio_assert(aiter!= _users.end(), "User does not exist");
         eosio_assert(iterator != _storage.end(), "The bid not found");
-        eosio_assert(iterator->accepted_seeders.size() >= iterator->max_seeders,
+        eosio_assert(iterator->accepted_seeders.size() <= iterator->max_seeders,
                      "The storage object has the max amount of seeders");
+        _storage.modify(iterator, get_self(), [&](auto &u) {
+            u.accepted_seeders.push_back(buyer);
+        });
+        _users.modify(aiter, get_self(), [&](auto &u) {
+            u.seeded_objects.push_back(storage_id);
+        });
     }
 
 
     ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
-            vector<name> accepted_seeders, uint64_t max_seeders, bool self_host) {
-        require_auth(account.value);
+            vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost) {
         require_auth(account);
         auto iterator = _users.find(account.value);
         eosio_assert(iterator != _users.end(), "User does not exist.");
@@ -26,6 +34,7 @@ namespace bpfish{
             s.self_host = self_host;
             s.bandwidth_used = 0;
             s.accepted_seeders = vector<name>();
+            s.bandwidth_cost = bandwidth_cost;
         });
         _users.modify(iterator, account, [&](auto &u) {
             u.owned_objects.push_back(storage_id);
