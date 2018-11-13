@@ -45,8 +45,7 @@ namespace bpfish{
 
 
         time_t date = now();
-        stat
-        client_stat = {from, to, amount, seeder};
+        stat client_stat = {from, to, amount, seeder};
 
         auto pstat_itr = _pstats.find(storage_id);
         bool foundStat = false;
@@ -131,28 +130,6 @@ namespace bpfish{
         });
     }
 
-    ACTION hodlong::addseed(name account, name storage_id) {
-        require_auth(account);
-        auto iterator = _users.find(account.value);
-        eosio_assert(iterator != _users.end(), "Address for account not found");
-
-        _users.modify(iterator, account, [&](auto &user) {
-            user.seeded_objects.push_back(storage_id.value);
-        });
-    }
-
-    ACTION hodlong::removeseed(const name account, name storageId) {
-        require_auth(account);
-        auto iterator = _users.find(account.value);
-        eosio_assert(iterator != _users.end(), "Address for account not found");
-
-        _users.modify(iterator, account, [&](auto &user) {
-
-            auto position = find(user.seeded_objects.begin(), user.seeded_objects.end(), 8);
-            if (position != user.seeded_objects.end()) // == myVector.end() means the element was not found
-                user.seeded_objects.erase(position);
-        });
-    }
 
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
         // use explicit naming due to code & receiver originating from eosio.token::transfer
@@ -191,7 +168,7 @@ extern "C" {
     else if (code == receiver) {
         switch (action) {
             EOSIO_DISPATCH_HELPER(bpfish::hodlong,
-                                  (buy)(createobj)(addstats)(adduser)(updateuser)(addseed)(removeseed)(transfer));
+                                  (buy)(createobj)(addstats)(adduser)(updateuser)(transfer));
         }
     }
     eosio_exit(0);

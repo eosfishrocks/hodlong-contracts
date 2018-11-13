@@ -86,8 +86,6 @@ namespace bpfish{
                     vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost);
             ACTION addstats(const name from, const name to, uint64_t storage_id, bool seeder, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
-            ACTION addseed(name account, name storage_id);
-            ACTION removeseed(const name account, name storageId);
             ACTION transfer(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity, string memo);
             ACTION updateuser(name account, string &pub_key);
