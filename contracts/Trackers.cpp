@@ -27,7 +27,7 @@ namespace bpfish {
         auto iterator = _webtrackers.find(account.value);
         eosio_assert(iterator != _webtrackers.end(), "A tracker doesn't exist for this account.");
 
-        _webtrackers.modify(iterator, account, [&](auto& trackers) {
+        _webtrackers.modify(iterator, _self, [&](auto& trackers) {
             trackers.url = tracker_url;
         });
     }

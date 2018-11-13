@@ -3,12 +3,14 @@
 #include <eosiolib/asset.hpp>
 #include <eosiolib/singleton.hpp>
 #include <eosiolib/print.hpp>
+#include <eosiolib/symbol.hpp>
+
 
 using namespace eosio;
 using std::string;
 using std::vector;
 
-
+namespace bpfish{
     CONTRACT hodlong : public eosio::contract{
         public:
             hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
@@ -17,15 +19,15 @@ using std::vector;
             {}
 
             TABLE users_t {
-                name account_name;
+                name account;
                 string pub_key;
                 asset balance;
                 vector <uint64_t> owned_objects;
                 vector <uint64_t> seeded_objects;
 
-                uint64_t primary_key() const { return account_name.value; }
+                uint64_t primary_key() const { return account.value; }
 
-                EOSLIB_SERIALIZE(users_t, (account_name)(pub_key)(balance)(owned_objects)(seeded_objects));
+                EOSLIB_SERIALIZE(users_t, (account)(pub_key)(balance)(owned_objects)(seeded_objects));
             };
 
             TABLE storage_t {
@@ -92,4 +94,4 @@ using std::vector;
             pstats _pstats;
             users _users;
     };
-
+}

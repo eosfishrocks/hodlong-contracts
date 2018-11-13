@@ -1,5 +1,5 @@
 #include "Hodlong.hpp"
-
+namespace bpfish{
     ACTION hodlong::buy(name buyer, name storage_id) {
         auto iterator = _storage.find(storage_id.value);
         eosio_assert(iterator != _storage.end(), "The bid not found");
@@ -91,8 +91,9 @@
         eosio_assert(iterator == _users.end(), "A user exist for this account.");
 
         _users.emplace(account, [&](auto &u) {
-            u.account_name = account;
+            u.account = account;
             u.pub_key = pub_key;
+            u.balance = asset(0,symbol(symbol_code("SYS"),4));
 
         });
 
@@ -102,9 +103,8 @@
         auto iterator = _users.find(account.value);
         eosio_assert(iterator != _users.end(), "User account does not exist");
 
-        _users.modify(iterator, get_self(), [&](auto &u) {
+        _users.modify(iterator, account, [&](auto &u) {
             u.pub_key = pub_key;
-
         });
     }
 
@@ -134,11 +134,13 @@
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
         if (from == get_self() || to != get_self())
             return;
-        auto user = _users.find(from.value);
 
-        eosio_assert(user != _users.end(), "User does not exist");
+        users _transfer_users(name("hodlong"_n), name("hodlong"_n).value);
+        auto user = _transfer_users.find(from.value);
 
-        _users.modify(user, get_self(), [&](auto u) {
+        eosio_assert(user != _transfer_users.end(), "User does not exist");
+
+        _transfer_users.modify(user, get_self(), [&](auto u) {
             u.balance += quantity;
         });
 
@@ -155,17 +157,18 @@
 
     }
 
+}
+
 extern "C" {
 [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
     if (action == "transfer"_n.value && code == "eosio.token"_n.value) {
 
-        eosio::execute_action(name(receiver), name(code), &hodlong::transfer);
+        eosio::execute_action(name(receiver), name(code), &bpfish::hodlong::transfer);
     }
-
-    if (code == receiver) {
+    else if (code == receiver) {
         switch (action) {
-            EOSIO_DISPATCH_HELPER(hodlong,
-                                  (buy)(createobj)(addstats)(adduser)(addseed)(removeseed)(transfer))
+            EOSIO_DISPATCH_HELPER(bpfish::hodlong,
+                                  (buy)(createobj)(addstats)(adduser)(updateuser)(addseed)(removeseed)(transfer));
         }
     }
     eosio_exit(0);
