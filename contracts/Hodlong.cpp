@@ -135,12 +135,12 @@ namespace bpfish{
         if (from == get_self() || to != get_self())
             return;
 
-        users _transfer_users(name("hodlong"_n), name("hodlong"_n).value);
-        auto user = _transfer_users.find(from.value);
+        require_auth(from);
+        users transfer_users(name("hodlong"), name("hodlong").value);
+        auto iterator = transfer_users.find(from.value);
+        eosio_assert(iterator != transfer_users.end(), "User account does not exist");
 
-        eosio_assert(user != _transfer_users.end(), "User does not exist");
-
-        _transfer_users.modify(user, get_self(), [&](auto u) {
+        transfer_users.modify(iterator, name("hodlong"), [&](auto &u) {
             u.balance += quantity;
         });
 
