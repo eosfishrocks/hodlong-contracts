@@ -9,9 +9,12 @@ using std::vector;
 
 namespace bpfish{
     CONTRACT hodlong : public eosio::contract{
-
         public:
-            using contract::contract;
+            hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
+                eosio::contract(receiver, code, ds),  _settings_table(receiver, code.value),
+                _storage_table(receiver, code.value), _pstats_table(receiver, code.value),
+                _users_table(receiver, code.value)
+            {}
 
             TABLE settings_t {
                 name token_name;
@@ -92,7 +95,10 @@ namespace bpfish{
             ACTION addfunds(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity, string memo);
 
-
+            settings _settings_table;
+            storage _storage_table;
+            pstats _pstats_table;
+            users _users_table;
     };
 }
 
