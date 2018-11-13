@@ -2,24 +2,19 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/asset.hpp>
 #include <eosiolib/singleton.hpp>
+#include <eosiolib/print.hpp>
 
 using namespace eosio;
 using std::string;
 using std::vector;
 
-namespace bpfish{
+
     CONTRACT hodlong : public eosio::contract{
         public:
             hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
-                eosio::contract(receiver, code, ds),  _settings_table(receiver, code.value),
-                _storage_table(receiver, code.value), _pstats_table(receiver, code.value),
-                _users_table(receiver, code.value)
+               eosio::contract(receiver, code, ds), _storage(receiver, code.value),
+                _pstats(receiver, code.value), _users(receiver, code.value)
             {}
-
-            TABLE settings_t {
-                name token_name;
-                EOSLIB_SERIALIZE(settings_t, (token_name));
-            };
 
             TABLE users_t {
                 name account_name;
@@ -78,43 +73,23 @@ namespace bpfish{
                 )
             };
 
-            typedef singleton<"settings"_n, settings_t> settings;
-            typedef multi_index<"settings"_n, settings_t> dummy_for_abi; // hack until abi generator generates correct name
             typedef multi_index< "users"_n, users_t > users;
             typedef multi_index< "stats"_n, stats_t > stats;
             typedef multi_index< "pstats"_n, pstats_t > pstats;
             typedef multi_index< "storage"_n, storage_t > storage;
 
-            ACTION init(name token_name);
             ACTION buy(name buyer, name storage_id);
             ACTION createobj(name account, storage_t newObj);
             ACTION addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
             ACTION addseed(name account, name storage_id);
             ACTION removeseed(const name account, name storageId);
-            ACTION addfunds(name from, name to, asset quantity, string memo);
+            ACTION transfer(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity, string memo);
+            ACTION updateuser(name account, string &pub_key);
 
-            settings _settings_table;
-            storage _storage_table;
-            pstats _pstats_table;
-            users _users_table;
+            storage _storage;
+            pstats _pstats;
+            users _users;
     };
-}
-
-extern "C" {
-[[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-    if (action == "addfunds"_n.value && code != receiver) {
-        execute_action(eosio::name(receiver), eosio::name(code), &bpfish::hodlong::addfunds);
-    }
-
-    if (code == receiver) {
-        switch (action) {
-            EOSIO_DISPATCH_HELPER(bpfish::hodlong,
-                                  (buy)(createobj)(addstats)(adduser)(addseed)(removeseed)(addfunds))
-        }
-    }
-    eosio_exit(0);
-}
-}
 

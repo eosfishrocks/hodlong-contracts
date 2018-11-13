@@ -1,56 +1,48 @@
 #include "Hodlong.hpp"
 
-namespace bpfish {
-    ACTION hodlong::init(name x_token_name) {
-        require_auth(_self);
-
-        bool settings_exists = _settings_table.exists();
-        eosio_assert(!settings_exists, "settings already defined");
-        _settings_table.set(settings_t{x_token_name}, _self);
-    }
-
     ACTION hodlong::buy(name buyer, name storage_id) {
-        auto iterator = _storage_table.find(storage_id.value);
-        eosio_assert(iterator != _storage_table.end(), "The bid not found");
+        auto iterator = _storage.find(storage_id.value);
+        eosio_assert(iterator != _storage.end(), "The bid not found");
         eosio_assert(iterator->accepted_seeders.size() >= iterator->max_seeders,
                      "The storage object has the max amount of seeders");
     }
 
     ACTION hodlong::createobj(name account, storage_t newObj) {
         require_auth(account.value);
-        auto iterator = _storage_table.find(newObj.storage_id.value);
-        eosio_assert(iterator == _storage_table.end(), "Obj for this ID already exists");
-        _storage_table.emplace(account, [&](auto &storage_obj) {
+        auto iterator = _storage.find(newObj.storage_id.value);
+        eosio_assert(iterator == _storage.end(), "Obj for this ID already exists");
+        _storage.emplace(get_self(), [&](auto &storage_obj) {
             storage_obj = newObj;
         });
+
     }
 
     ACTION hodlong::addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount) {
         require_auth(from);
 
-        
+
         time_t date = now();
         stat
         client_stat = {from, to, amount, seeder};
 
-        auto pstat_itr = _pstats_table.find(storage_id.value);
+        auto pstat_itr = _pstats.find(storage_id.value);
         bool foundStat = false;
-        if (pstat_itr == _pstats_table.end()) {
-            _pstats_table.emplace(storage_id, [&](auto &tmp_stat) {
+        if (pstat_itr == _pstats.end()) {
+            _pstats.emplace(get_self(), [&](auto &tmp_stat) {
                 tmp_stat.storage_id = storage_id;
                 tmp_stat.pending_stats.push_back(client_stat);
             });
             foundStat = true;
         } else {
-            _pstats_table.modify(pstat_itr, from, [&](auto &tmp_stat) {
+            _pstats.modify(pstat_itr, from, [&](auto &tmp_stat) {
                 tmp_stat.pending_stats.push_back(client_stat);
             });
         }
         //may need to break into deferred actions for delete depending on mainnet processing times
         if (foundStat) {
-            
-            auto storageIterator = _storage_table.find(storage_id.value);
-            eosio_assert(storageIterator == _storage_table.end(), "The storage id is not found");
+
+            auto storageIterator = _storage.find(storage_id.value);
+            eosio_assert(storageIterator == _storage.end(), "The storage id is not found");
 
             vector <uint64_t> pendingDeletion;
             // Inefficient loop and due to RAM Cost. Cheaper to offload to cpu
@@ -76,14 +68,14 @@ namespace bpfish {
                                 // #TODO Update amount to multiplier times active stats
                                 action(permission_level{from, "active"_n},
                                        "eosio.token"_n, "transfer"_n,
-                                       std::make_tuple(_self, to, amount, std::string(""))
+                                       std::make_tuple(get_self(), to, amount, std::string(""))
                                 ).send();
                             } else {
                                 verifiedAmount = pstat_itr->pending_stats[v1].amount;
                                 verifiedAmountModifier =
                                         pstat_itr->pending_stats[v3].amount - pstat_itr->pending_stats[v1].amount;
                             }
-                            _storage_table.modify(storageIterator, from, [&](auto &storage_stat) {
+                            _storage.modify(storageIterator, from, [&](auto &storage_stat) {
                                 storage_stat.bandwidth_used += amount;
                             });
                         }
@@ -95,36 +87,43 @@ namespace bpfish {
 
     ACTION hodlong::adduser(const name account, string &pub_key) {
         require_auth(account);
-        
-        auto iterator = _users_table.find(account.value);
-        eosio_assert(iterator == _users_table.end(), "Address for account already exists");
+        auto iterator = _users.find(account.value);
+        eosio_assert(iterator == _users.end(), "A user exist for this account.");
 
-        _users_table.emplace(account, [&](auto &user) {
-            user.account_name = account;
-            user.pub_key = pub_key;
+        _users.emplace(account, [&](auto &u) {
+            u.account_name = account;
+            u.pub_key = pub_key;
 
         });
 
     }
+    ACTION hodlong::updateuser(const name account, string &pub_key){
+        require_auth(account);
+        auto iterator = _users.find(account.value);
+        eosio_assert(iterator != _users.end(), "User account does not exist");
+
+        _users.modify(iterator, get_self(), [&](auto &u) {
+            u.pub_key = pub_key;
+
+        });
+    }
 
     ACTION hodlong::addseed(name account, name storage_id) {
         require_auth(account);
+        auto iterator = _users.find(account.value);
+        eosio_assert(iterator != _users.end(), "Address for account not found");
 
-        auto iterator = _users_table.find(account.value);
-        eosio_assert(iterator != _users_table.end(), "Address for account not found");
-
-        _users_table.modify(iterator, account, [&](auto &user) {
+        _users.modify(iterator, account, [&](auto &user) {
             user.seeded_objects.push_back(storage_id.value);
         });
     }
 
     ACTION hodlong::removeseed(const name account, name storageId) {
         require_auth(account);
+        auto iterator = _users.find(account.value);
+        eosio_assert(iterator != _users.end(), "Address for account not found");
 
-        auto iterator = _users_table.find(account.value);
-        eosio_assert(iterator != _users_table.end(), "Address for account not found");
-
-        _users_table.modify(iterator, account, [&](auto &user) {
+        _users.modify(iterator, account, [&](auto &user) {
 
             auto position = find(user.seeded_objects.begin(), user.seeded_objects.end(), 8);
             if (position != user.seeded_objects.end()) // == myVector.end() means the element was not found
@@ -132,33 +131,43 @@ namespace bpfish {
         });
     }
 
-    ACTION hodlong::addfunds(name from, name to, asset quantity, string memo) {
-        if (from == _self)
+    ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
+        if (from == get_self() || to != get_self())
             return;
+        auto user = _users.find(from.value);
 
-        auto user = _users_table.find(from.value);
-        eosio_assert(user != _users_table.end(), "User does not exist");
+        eosio_assert(user != _users.end(), "User does not exist");
 
-        // If using a different token, please update name
-        if (_code != name("EOS"_n))
-            return;
-        _users_table.modify(user, from, [&](auto &newuser) {
-            newuser.balance += quantity;
+        _users.modify(user, get_self(), [&](auto u) {
+            u.balance += quantity;
         });
 
     }
 
     ACTION hodlong::removefunds(name to, asset quantity, string memo) {
-        users _users_table(_self, _self.value);
-        auto user = _users_table.find(to.value);
-        eosio_assert(user != _users_table.end(), "User does not exist");
+        auto user = _users.find(to.value);
+        eosio_assert(user != _users.end(), "User does not exist");
         eosio_assert(user->balance <= quantity, "You do not have the required balance to remove the funds");
-        action(permission_level{_self, "active"_n},
+        action(permission_level{get_self(), "active"_n},
                "eosio.token"_n, "transfer"_n,
-               std::make_tuple(_self, to, quantity, std::string("Transfer of funds out of hodlong account"))
+               std::make_tuple(get_self(), to, quantity, std::string("Transfer of funds out of hodlong account"))
         ).send();
 
     }
 
+extern "C" {
+[[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+    if (action == "transfer"_n.value && code == "eosio.token"_n.value) {
 
-};
+        eosio::execute_action(name(receiver), name(code), &hodlong::transfer);
+    }
+
+    if (code == receiver) {
+        switch (action) {
+            EOSIO_DISPATCH_HELPER(hodlong,
+                                  (buy)(createobj)(addstats)(adduser)(addseed)(removeseed)(transfer))
+        }
+    }
+    eosio_exit(0);
+}
+}
