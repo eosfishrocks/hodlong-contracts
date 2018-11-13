@@ -7,17 +7,31 @@ namespace bpfish{
                      "The storage object has the max amount of seeders");
     }
 
-    ACTION hodlong::createobj(name account, storage_t newObj) {
+
+    ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
+            vector<name> accepted_seeders, uint64_t max_seeders, bool self_host) {
         require_auth(account.value);
-        auto iterator = _storage.find(newObj.storage_id.value);
-        eosio_assert(iterator == _storage.end(), "Obj for this ID already exists");
-        _storage.emplace(get_self(), [&](auto &storage_obj) {
-            storage_obj = newObj;
+        require_auth(account);
+        auto iterator = _users.find(account.value);
+        eosio_assert(iterator != _users.end(), "User does not exist.");
+
+        uint64_t storage_id = _storage.available_primary_key();
+        _storage.emplace(get_self(), [&](auto &s) {
+            s.storage_id = storage_id;
+            s.account = account;
+            s.filename = filename;
+            s.file_size = file_size;
+            s.checksum = checksum;
+            s.max_seeders = max_seeders;
+            s.self_host = self_host;
+            s.bandwidth_used = 0;
+            s.accepted_seeders = vector<name>();
         });
-
+        _users.modify(iterator, account, [&](auto &u) {
+            u.owned_objects.push_back(storage_id);
+        });
     }
-
-    ACTION hodlong::addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount) {
+    ACTION hodlong::addstats(const name from, const name to, uint64_t storage_id, bool seeder, uint64_t amount) {
         require_auth(from);
 
 
@@ -25,7 +39,7 @@ namespace bpfish{
         stat
         client_stat = {from, to, amount, seeder};
 
-        auto pstat_itr = _pstats.find(storage_id.value);
+        auto pstat_itr = _pstats.find(storage_id);
         bool foundStat = false;
         if (pstat_itr == _pstats.end()) {
             _pstats.emplace(get_self(), [&](auto &tmp_stat) {
@@ -41,7 +55,7 @@ namespace bpfish{
         //may need to break into deferred actions for delete depending on mainnet processing times
         if (foundStat) {
 
-            auto storageIterator = _storage.find(storage_id.value);
+            auto storageIterator = _storage.find(storage_id);
             eosio_assert(storageIterator == _storage.end(), "The storage id is not found");
 
             vector <uint64_t> pendingDeletion;
@@ -132,11 +146,12 @@ namespace bpfish{
     }
 
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
-        if (from == get_self() || to != get_self())
+        // use explicit naming due to code & receiver originating from eosio.token::transfer
+        name hname = name("hodlong");
+        if (from == hname || to != hname)
             return;
-
         require_auth(from);
-        users transfer_users(name("hodlong"), name("hodlong").value);
+        users transfer_users(hname, hname.value);
         auto iterator = transfer_users.find(from.value);
         eosio_assert(iterator != transfer_users.end(), "User account does not exist");
 
@@ -162,7 +177,6 @@ namespace bpfish{
 extern "C" {
 [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
     if (action == "transfer"_n.value && code == "eosio.token"_n.value) {
-
         eosio::execute_action(name(receiver), name(code), &bpfish::hodlong::transfer);
     }
     else if (code == receiver) {

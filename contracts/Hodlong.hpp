@@ -31,18 +31,19 @@ namespace bpfish{
             };
 
             TABLE storage_t {
-                name storage_id;
+                uint64_t storage_id;
                 name account;
                 string filename;
                 string file_size;
                 string checksum;
-                vector <uint64_t> accepted_seeders;
+                vector <name> accepted_seeders;
                 uint64_t max_seeders;
                 uint64_t bandwidth_used;
-                uint64_t primary_key() const { return storage_id.value; }
+                bool self_host;
+                uint64_t primary_key() const { return storage_id; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
-                    (accepted_seeders)(max_seeders));
+                    (accepted_seeders)(max_seeders)(bandwidth_used)(self_host));
             };
 
             TABLE stat {
@@ -53,23 +54,22 @@ namespace bpfish{
             };
 
             TABLE stats_t {
-                name stats_id;
-                name storage_id;
+                name storage;
                 name account;
                 uint64_t amount;
 
-                uint64_t primary_key() const { return stats_id.value; }
+                uint64_t primary_key() const { return storage.value; }
 
-                EOSLIB_SERIALIZE(stats_t, (stats_id)(account)(storage_id)(amount)
+                EOSLIB_SERIALIZE(stats_t, (account)(storage)(amount)
                 )
             };
 
             TABLE pstats_t {
-                name pstats_id;
-                name storage_id;
+                uint64_t pstats_id;
+                uint64_t storage_id;
                 vector <stat> pending_stats;
 
-                uint64_t primary_key() const { return pstats_id.value; }
+                uint64_t primary_key() const { return pstats_id; }
 
                 EOSLIB_SERIALIZE(pstats_t, (pstats_id)(storage_id)(pending_stats)
                 )
@@ -81,15 +81,15 @@ namespace bpfish{
             typedef multi_index< "storage"_n, storage_t > storage;
 
             ACTION buy(name buyer, name storage_id);
-            ACTION createobj(name account, storage_t newObj);
-            ACTION addstats(const name from, const name to, name storage_id, bool seeder, uint64_t amount);
+            ACTION createobj(name account, string &filename, string &filesize, string &checksum,
+                    vector<name> accepted_seeders, uint64_t max_seeders, bool self_host);
+            ACTION addstats(const name from, const name to, uint64_t storage_id, bool seeder, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
             ACTION addseed(name account, name storage_id);
             ACTION removeseed(const name account, name storageId);
             ACTION transfer(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity, string memo);
             ACTION updateuser(name account, string &pub_key);
-
             storage _storage;
             pstats _pstats;
             users _users;
