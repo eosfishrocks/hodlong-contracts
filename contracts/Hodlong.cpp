@@ -2,7 +2,6 @@
 namespace bpfish{
     ACTION hodlong::buy(name buyer, uint64_t storage_id) {
         auto aiter= _users.find(buyer.value);
-
         auto iterator = _storage.find(storage_id);
         eosio_assert(aiter!= _users.end(), "User does not exist");
         eosio_assert(iterator != _storage.end(), "The bid not found");
@@ -40,65 +39,85 @@ namespace bpfish{
             u.owned_objects.push_back(storage_id);
         });
     }
-    ACTION hodlong::addstats(const name from, const name to, uint64_t storage_id, bool seeder, uint64_t amount) {
-        require_auth(from);
-
-
+    ACTION hodlong::addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount) {
+        require_auth(authority);
         time_t date = now();
-        stat client_stat = {from, to, amount, seeder};
+        stat client_stat = {authority, from, to, amount, date};
+        bool found_stat = false;
+        bool users_are_paid = false;
+        auto siterator = _storage.find(storage_id);
+        eosio_assert(siterator != _storage.end(), "The storage id is not found");
 
-        auto pstat_itr = _pstats.find(storage_id);
-        bool foundStat = false;
-        if (pstat_itr == _pstats.end()) {
-            _pstats.emplace(get_self(), [&](auto &tmp_stat) {
-                tmp_stat.storage_id = storage_id;
-                tmp_stat.pending_stats.push_back(client_stat);
-            });
-            foundStat = true;
-        } else {
-            _pstats.modify(pstat_itr, from, [&](auto &tmp_stat) {
-                tmp_stat.pending_stats.push_back(client_stat);
-            });
+        for (int s0 = 0; s0 < siterator->accepted_seeders.size(); s0++){
+            if (siterator->accepted_seeders[s0] == from || siterator->accepted_seeders[s0] == to){
+                users_are_paid= true;
+            }
         }
+        auto pstat_itr = _pstats_storage.lower_bound(storage_id);
+
+        if (pstat_itr == _pstats_storage.end() && users_are_paid) {
+            _pstats.emplace(get_self(), [&](auto &tmp_stat) {
+                tmp_stat.storageid = storage_id;
+                tmp_stat.pending_stats.push_back(client_stat);
+            });
+        } else if (users_are_paid){
+            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &tmp_stat) {
+                tmp_stat.pending_stats.push_back(client_stat);
+            });
+            found_stat = true;
+        }
+
         //may need to break into deferred actions for delete depending on mainnet processing times
-        if (foundStat) {
+        if (found_stat && users_are_paid) {
+            eosio_assert(from == authority || to == authority, "Neither to or from is the authority");
+            vector <uint64_t> pending_deletion;
+            //  #TODO Add multi index secondary key to cut processing times for envs with many users.
+            for (int v1 = 0; v1 < pstat_itr->pending_stats.size(); v1++) {
+                int v3 = v1 + 1;
+                print(std::to_string(now() - pstat_itr->pending_stats[v1].submitted));
+                if (now() - pstat_itr->pending_stats[v1].submitted > 604800) {
+                    pending_deletion.push_back(v1);
+                    break;
+                }
 
-            auto storageIterator = _storage.find(storage_id);
-            eosio_assert(storageIterator == _storage.end(), "The storage id is not found");
-
-            vector <uint64_t> pendingDeletion;
-            // Inefficient loop and due to RAM Cost. Cheaper to offload to cpu
-            for (int v1 = 0; pstat_itr->pending_stats.size(); v1++) {
-                for (int v2 = 1; pstat_itr->pending_stats.size(); v2++) {
-                    int v3 = v1 + v2;
-                    if ((v1 != v3) && ((pstat_itr->pending_stats[v1].to == pstat_itr->pending_stats[v3].from ||
-                            pstat_itr->pending_stats[v1].from == pstat_itr->pending_stats[v3].to) &&
-                                       (pstat_itr->pending_stats[v1].to != pstat_itr->pending_stats[v3].to &&
-                                               pstat_itr->pending_stats[v1].from != pstat_itr->pending_stats[v3].to))) {
-                        // Expire stats in a week.
-                        if (now() - pstat_itr->pending_stats[v1].submitted < 604800) {
-                            pendingDeletion.push_back(v1);
-                        } else if (now() - pstat_itr->pending_stats[v3].submitted < 604800);
-                        else {
+                for (int v2 = 0; v2 < pstat_itr->pending_stats.size(); v2++) {
+                    if (v2 == 0) {
+                        v2 = v3;
+                    }
+                    eosio::print(std::to_string(v1+v2));
+                    print(std::to_string(v2+v1));
+                    if (pstat_itr->pending_stats[v1].to == pstat_itr->pending_stats[v3].to &&
+                        pstat_itr->pending_stats[v1].from == pstat_itr->pending_stats[v3].from &&
+                        pstat_itr->pending_stats[v1].authority != pstat_itr->pending_stats[v3].authority &&
+                        pstat_itr->pending_stats[v1].amount !=0 && pstat_itr->pending_stats[v2].amount != 0) {
                             uint64_t verifiedAmount;
                             uint64_t verifiedAmountModifier;
-                            if (pstat_itr->pending_stats[v1].amount > pstat_itr->pending_stats[v3].amount) {
-                                verifiedAmount = pstat_itr->pending_stats[v3].amount;
-                                verifiedAmountModifier =
-                                        pstat_itr->pending_stats[v1].amount - pstat_itr->pending_stats[v3].amount;
-                                // Search for user account to add
-                                // #TODO Update amount to multiplier times active stats
-                                action(permission_level{from, "active"_n},
-                                       "eosio.token"_n, "transfer"_n,
-                                       std::make_tuple(get_self(), to, amount, std::string(""))
-                                ).send();
-                            } else {
-                                verifiedAmount = pstat_itr->pending_stats[v1].amount;
-                                verifiedAmountModifier =
-                                        pstat_itr->pending_stats[v3].amount - pstat_itr->pending_stats[v1].amount;
-                            }
-                            _storage.modify(storageIterator, from, [&](auto &storage_stat) {
-                                storage_stat.bandwidth_used += amount;
+                        if (pstat_itr->pending_stats[v1].amount == pstat_itr->pending_stats[v3].amount) {
+                            verifiedAmount = pstat_itr->pending_stats[v1].amount;
+                            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                                s.pending_stats[v1].amount = 0;
+                                s.pending_stats[v3].amount = 0;
+                            });
+                            pending_deletion.push_back(v1);
+                            pending_deletion.push_back(v3);
+                        } else if (pstat_itr->pending_stats[v1].amount > pstat_itr->pending_stats[v3].amount) {
+                            verifiedAmount = pstat_itr->pending_stats[v3].amount;
+                            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                                s.pending_stats[v1].amount -= pstat_itr->pending_stats[v3].amount;
+                                s.pending_stats[v3].amount = 0;
+                            });
+                            pending_deletion.push_back(v3);
+                        } else if (pstat_itr->pending_stats[v1].amount < pstat_itr->pending_stats[v3].amount) {
+                            verifiedAmount = pstat_itr->pending_stats[v1].amount;
+                            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                                s.pending_stats[v3].amount -= pstat_itr->pending_stats[v1].amount;
+                                s.pending_stats[v1].amount = 0;
+                            });
+                            pending_deletion.push_back(v1);
+                        }
+                        if (verifiedAmount > 0) {
+                            _storage.modify(siterator, get_self(), [&](auto &storage_stat) {
+                                storage_stat.bandwidth_used += verifiedAmount;
                             });
                         }
                     }
@@ -112,7 +131,7 @@ namespace bpfish{
         auto iterator = _users.find(account.value);
         eosio_assert(iterator == _users.end(), "A user exist for this account.");
 
-        _users.emplace(account, [&](auto &u) {
+        _users.emplace(get_self(), [&](auto &u) {
             u.account = account;
             u.pub_key = pub_key;
             u.balance = asset(0,symbol(symbol_code("SYS"),4));
@@ -125,7 +144,7 @@ namespace bpfish{
         auto iterator = _users.find(account.value);
         eosio_assert(iterator != _users.end(), "User account does not exist");
 
-        _users.modify(iterator, account, [&](auto &u) {
+        _users.modify(iterator, get_self(), [&](auto &u) {
             u.pub_key = pub_key;
         });
     }
@@ -167,8 +186,7 @@ extern "C" {
     }
     else if (code == receiver) {
         switch (action) {
-            EOSIO_DISPATCH_HELPER(bpfish::hodlong,
-                                  (buy)(createobj)(addstats)(adduser)(updateuser)(transfer));
+            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (buy)(createobj)(addstats)(adduser)(updateuser)(transfer));
         }
     }
     eosio_exit(0);
