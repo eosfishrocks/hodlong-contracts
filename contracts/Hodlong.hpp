@@ -86,10 +86,12 @@ namespace bpfish{
             typedef multi_index< "storage"_n, storage_t > storage;
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t, &pstats_t::by_storage_id>>> pstats_storage;
 
+            // Global contract nname for transfers frpm eosio.token
+            name contract_name = name("hodlong");
+            string symbol_name = "SYS";
 
 
-
-ACTION buy(name buyer, uint64_t storage_id);
+            ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
                     vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
                     uint64_t bandwidth_divisor);

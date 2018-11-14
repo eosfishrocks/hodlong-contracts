@@ -145,9 +145,28 @@ namespace bpfish{
                                         });
                                         // Move balance if over divisor
                                         if (stat_iter->amount > storage_iter->bandwidth_divisor){
-                                            _stats.modify(stat_iter, get_self(), [&](auto &s) {
-                                                s.amount = 0;
+                                            uint64_t new_balance = stat_iter->amount % storage_iter->bandwidth_divisor;
+                                            uint64_t paid_amount = storage_iter->bandwidth_cost * (stat_iter->amount/storage_iter->bandwidth_divisor);
+                                            asset paid_amount_s = asset(stat_iter->amount, symbol(symbol_code(symbol_name),4));
+
+
+                                            auto user_iter = _users.find(stat_iter->account.value);
+                                            eosio_assert(user_iter != _users.end(), "User account does not exist.");
+                                            _users.modify(user_iter, get_self(), [&](auto &u) {
+                                                if (stat_iter->negative) {
+                                                    if (user_iter->balance < paid_amount_s){
+                                                        u.balance = asset(0, symbol(symbol_code(symbol_name),4);
+                                                    }
+                                                    u.balance -= paid_amount_s;
+                                                }
+                                                else {
+                                                    u.balance += paid_amount_s;
+                                                }
                                             });
+                                            _stats.modify(stat_iter, get_self(), [&](auto &s) {
+                                                s.amount = new_balance;
+                                            });
+
                                         }
                                     }
                                 }
@@ -177,7 +196,7 @@ namespace bpfish{
         _users.emplace(get_self(), [&](auto &u) {
             u.account = account;
             u.pub_key = pub_key;
-            u.balance = asset(0,symbol(symbol_code("SYS"),4));
+            u.balance = asset(0,symbol(symbol_code(symbol_name),4));
         });
 
     }
@@ -194,15 +213,15 @@ namespace bpfish{
 
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
         // use explicit naming due to code & receiver originating from eosio.token::transfer
-        name hname = name("hodlong");
-        if (from == hname || to != hname)
+        
+        if (from == contract_name || to != contract_name)
             return;
         require_auth(from);
-        users transfer_users(hname, hname.value);
+        users transfer_users(contract_name, contract_name.value);
         auto iterator = transfer_users.find(from.value);
         eosio_assert(iterator != transfer_users.end(), "User account does not exist");
 
-        transfer_users.modify(iterator, name("hodlong"), [&](auto &u) {
+        transfer_users.modify(iterator, contract_name, [&](auto &u) {
             u.balance += quantity;
         });
 
