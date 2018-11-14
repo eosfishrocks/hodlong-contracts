@@ -42,13 +42,14 @@ namespace bpfish{
                 uint64_t bandwidth_used;
                 bool self_host;
                 uint64_t bandwidth_cost;
+                uint64_t bandwidth_divisor;
 
                 uint64_t primary_key() const { return storage_id; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
-                    (accepted_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost));
+                    (accepted_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost)(bandwidth_divisor));
             };
-
+            // Generic Stat Object
             TABLE stat {
                 name authority;
                 name from;
@@ -57,17 +58,18 @@ namespace bpfish{
                 uint64_t amount;
                 time_t date;
             };
-
+            // Pending Stats to be Paid
             TABLE stats_t {
-                name storage;
+                uint64_t storage_id;
                 name account;
                 uint64_t amount;
+                bool negative;
 
-                uint64_t primary_key() const { return storage.value; }
+                uint64_t primary_key() const { return storage_id; }
 
-                EOSLIB_SERIALIZE(stats_t, (account)(storage)(amount));
+                    EOSLIB_SERIALIZE(stats_t, (storage_id)(account)(amount)(negative));
             };
-
+            // Pending Stats that haven't been processed
             TABLE pstats_t {
                 uint64_t pstats_id;
                 uint64_t storageid;
@@ -89,7 +91,8 @@ namespace bpfish{
 
 ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
-                    vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost);
+                    vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
+                    uint64_t bandwidth_divisor);
             ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
             ACTION transfer(name from, name to, asset quantity, string memo);
