@@ -15,7 +15,8 @@ namespace bpfish{
         public:
             hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
                eosio::contract(receiver, code, ds), _storage(receiver, code.value),
-                _pstats(receiver, code.value), _users(receiver, code.value), _pstats_storage(receiver, code.value)
+                _pstats(receiver, code.value), _users(receiver, code.value), _pstats_storage(receiver, code.value),
+                _stats(receiver, code.value)
             {}
 
             TABLE users_t {
@@ -54,8 +55,7 @@ namespace bpfish{
                 name to;
 
                 uint64_t amount;
-                time_t submitted;
-                EOSLIB_SERIALIZE(stat, (authority)(from)(to)(amount)(submitted))
+                time_t date;
             };
 
             TABLE stats_t {
@@ -100,5 +100,6 @@ ACTION buy(name buyer, uint64_t storage_id);
             pstats _pstats;
             users _users;
             pstats_storage _pstats_storage;
+            stats _stats;
     };
 }

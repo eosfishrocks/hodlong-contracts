@@ -42,19 +42,22 @@ namespace bpfish{
     ACTION hodlong::addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount) {
         require_auth(authority);
         time_t date = now();
-        stat client_stat = {authority, from, to, amount, date};
+
         bool found_stat = false;
         bool users_are_paid = false;
         auto siterator = _storage.find(storage_id);
         eosio_assert(siterator != _storage.end(), "The storage id is not found");
 
+
         for (int s0 = 0; s0 < siterator->accepted_seeders.size(); s0++){
             if (siterator->accepted_seeders[s0] == from || siterator->accepted_seeders[s0] == to){
                 users_are_paid= true;
+                stat client_stat = {authority, from, to, amount, date};
             }
         }
         auto pstat_itr = _pstats_storage.lower_bound(storage_id);
 
+        stat client_stat = {authority, from, to, amount, date};
         if (pstat_itr == _pstats_storage.end() && users_are_paid) {
             _pstats.emplace(get_self(), [&](auto &tmp_stat) {
                 tmp_stat.storageid = storage_id;
@@ -74,8 +77,8 @@ namespace bpfish{
             //  #TODO Add multi index secondary key to cut processing times for envs with many users.
             for (int v1 = 0; v1 < pstat_itr->pending_stats.size(); v1++) {
                 int v3 = v1 + 1;
-                print(std::to_string(now() - pstat_itr->pending_stats[v1].submitted));
-                if (now() - pstat_itr->pending_stats[v1].submitted > 604800) {
+                print(std::to_string(now() - pstat_itr->pending_stats[v1].date));
+                if (now() - pstat_itr->pending_stats[v1].date > 604800) {
                     pending_deletion.push_back(v1);
                     break;
                 }
@@ -121,6 +124,12 @@ namespace bpfish{
                             });
                         }
                     }
+                }
+                // delete empty stats in pstats
+                for (int d = 0;  d < pending_deletion.size(); d++){
+                    _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                        s.pending_stats.erase(s.pending_stats.begin() + pending_deletion[d] - d );
+                    });
                 }
             }
         }
