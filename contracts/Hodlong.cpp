@@ -155,7 +155,7 @@ namespace bpfish{
                                             _users.modify(user_iter, get_self(), [&](auto &u) {
                                                 if (stat_iter->negative) {
                                                     if (user_iter->balance < paid_amount_s){
-                                                        u.balance = asset(0, symbol(symbol_code(symbol_name),4);
+                                                        u.balance = asset(0, symbol(symbol_code(symbol_name),4));
                                                     }
                                                     u.balance -= paid_amount_s;
                                                 }
@@ -227,16 +227,21 @@ namespace bpfish{
 
     }
 
-    ACTION hodlong::removefunds(name to, asset quantity, string memo) {
+    ACTION hodlong::removefunds(name to, asset quantity) {
         auto user = _users.find(to.value);
         eosio_assert(user != _users.end(), "User does not exist");
         eosio_assert(user->balance <= quantity, "You do not have the required balance to remove the funds");
-        action(permission_level{get_self(), "active"_n},
+        asset transfer_amount;
+
+        _users.modify(user, contract_name, [&](auto &u) {
+            u.balance -= quantity;
+        });
+
+        action(permission_level{contract_name, "active"_n},
                "eosio.token"_n, "transfer"_n,
-               std::make_tuple(get_self(), to, quantity, std::string("Transfer of funds out of hodlong account"))
+               std::make_tuple(contract_name, to, transfer_amount, std::string("Transfer of funds out of hodlong account"))
         ).send();
     }
-
 }
 
 extern "C" {

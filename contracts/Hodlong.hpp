@@ -18,6 +18,9 @@ namespace bpfish{
                 _pstats(receiver, code.value), _users(receiver, code.value), _pstats_storage(receiver, code.value),
                 _stats(receiver, code.value)
             {}
+            // Global contract nname for transfers frpm eosio.token
+            name contract_name = name("hodlong");
+            string symbol_name = "SYS";
 
             TABLE users_t {
                 name account;
@@ -86,10 +89,6 @@ namespace bpfish{
             typedef multi_index< "storage"_n, storage_t > storage;
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t, &pstats_t::by_storage_id>>> pstats_storage;
 
-            // Global contract nname for transfers frpm eosio.token
-            name contract_name = name("hodlong");
-            string symbol_name = "SYS";
-
 
             ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
@@ -98,7 +97,7 @@ namespace bpfish{
             ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
             ACTION transfer(name from, name to, asset quantity, string memo);
-            ACTION removefunds(name to, asset quantity, string memo);
+            ACTION removefunds(name to, asset quantity);
             ACTION updateuser(name account, string &pub_key);
 
             storage _storage;
@@ -106,5 +105,6 @@ namespace bpfish{
             users _users;
             pstats_storage _pstats_storage;
             stats _stats;
+
     };
 }
