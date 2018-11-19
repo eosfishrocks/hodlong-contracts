@@ -60,6 +60,7 @@ namespace bpfish{
 
                 uint64_t amount;
                 time_t date;
+                uint64_t primary_key() const { return authority.value + from.value + to.value; }
             };
             // Pending Stats to be Paid
             TABLE stats_t {
@@ -89,7 +90,6 @@ namespace bpfish{
             typedef multi_index< "storage"_n, storage_t > storage;
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t, &pstats_t::by_storage_id>>> pstats_storage;
 
-
             ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
                     vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
@@ -99,6 +99,7 @@ namespace bpfish{
             ACTION transfer(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity);
             ACTION updateuser(name account, string &pub_key);
+            ACTION aremove(name authority, uint64_t storage_id);
 
             storage _storage;
             pstats _pstats;

@@ -242,6 +242,13 @@ namespace bpfish{
                std::make_tuple(contract_name, to, transfer_amount, std::string("Transfer of funds out of hodlong account"))
         ).send();
     }
+    ACTION hodlong::aremove(name authority, uint64_t storage_id) {
+        require_auth(_self);
+        auto iterator = _storage.find(authority.value);
+        eosio_assert(iterator != _storage.end(), "User does not exist.");
+
+        _storage.erase(iterator);
+    }
 }
 
 extern "C" {
