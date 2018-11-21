@@ -88,7 +88,8 @@ namespace bpfish{
             typedef multi_index< "stats"_n, stats_t > stats;
             typedef multi_index< "pstats"_n, pstats_t > pstats;
             typedef multi_index< "storage"_n, storage_t > storage;
-            typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t, &pstats_t::by_storage_id>>> pstats_storage;
+            typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t,
+                    &pstats_t::by_storage_id>>> pstats_storage;
 
             ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,

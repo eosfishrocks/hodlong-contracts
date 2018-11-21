@@ -76,7 +76,8 @@ namespace bpfish{
         if (found_stat && paid_account) {
             eosio_assert(from == authority || to == authority, "Neither to or from is the authority");
             vector <uint64_t> pending_deletion;
-            //  #TODO Add multi index secondary key to cut processing times for envs with many users.
+            // #TODO Add multi index secondary key of authority.value + from.value & to.value to cut processing times
+            // #TODO for envs with many users.
             for (int v1 = 0; v1 < pstat_itr->pending_stats.size(); v1++) {
                 int v3 = v1 + 1;
                 if (now() - pstat_itr->pending_stats[v1].date > 604800) {
@@ -242,10 +243,11 @@ namespace bpfish{
                std::make_tuple(contract_name, to, transfer_amount, std::string("Transfer of funds out of hodlong account"))
         ).send();
     }
-    ACTION hodlong::aremove(name authority, uint64_t storage_id) {
+
+    ACTION hodlong::aremove(const name authority, uint64_t storage_id) {
         require_auth(_self);
-        auto iterator = _storage.find(authority.value);
-        eosio_assert(iterator != _storage.end(), "User does not exist.");
+        auto iterator = _storage.find(storage_id);
+        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
 
         _storage.erase(iterator);
     }
