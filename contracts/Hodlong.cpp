@@ -269,8 +269,8 @@ namespace bpfish{
     ACTION hodlong::addas(const name authority, uint64_t storage_id, name seeder) {
         auto iterator = _storage.find(storage_id);
         eosio_assert(iterator != _storage.end(), "storage_id does not exist");
-        eosio_assert((authority == _self || authority == iterator->account || authority == seeder),
-                     "User does not have the authority to remove the approved seeder");
+        eosio_assert((authority == _self || authority == iterator->account),
+                     "User does not have the authority to add to the the approved seeder");
         for (int i=0; i < iterator->approved_seeders.size(); i++)
         {
             eosio_assert(iterator->approved_seeders[i].value != seeder.value, "User is already an approved seeder");
