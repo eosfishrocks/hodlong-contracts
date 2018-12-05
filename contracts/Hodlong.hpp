@@ -44,13 +44,14 @@ namespace bpfish{
                 uint64_t max_seeders;
                 uint64_t bandwidth_used;
                 bool self_host;
+                bool secure
                 uint64_t bandwidth_cost;
                 uint64_t bandwidth_divisor;
 
                 uint64_t primary_key() const { return storage_id; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
-                    (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost)(bandwidth_divisor));
+                    (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(secure)(bandwidth_cost)(bandwidth_divisor));
             };
             // Generic Stat Object
             TABLE stat {

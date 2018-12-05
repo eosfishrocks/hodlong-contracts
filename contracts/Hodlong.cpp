@@ -17,7 +17,7 @@ namespace bpfish{
 
 
     ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
-            vector<name> approved_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
+            vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
             uint64_t bandwidth_divisor) {
         require_auth(account);
         auto iterator = _users.find(account.value);
@@ -32,6 +32,7 @@ namespace bpfish{
             s.checksum = checksum;
             s.max_seeders = max_seeders;
             s.self_host = self_host;
+            s.secure = secure;
             s.bandwidth_used = 0;
             s.approved_seeders = vector<name>();
             s.bandwidth_cost = bandwidth_cost;
