@@ -44,7 +44,7 @@ namespace bpfish{
                 uint64_t max_seeders;
                 uint64_t bandwidth_used;
                 bool self_host;
-                bool secure
+                bool secure;
                 uint64_t bandwidth_cost;
                 uint64_t bandwidth_divisor;
 
@@ -94,10 +94,12 @@ namespace bpfish{
 
             ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
-                    vector<name> approved_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
+                    vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
                     uint64_t bandwidth_divisor);
+            // main stat collating and balance transfer method
             ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
+            // action from eosio.token to contract
             ACTION transfer(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity);
             ACTION updateuser(name account, string &pub_key);
