@@ -1,46 +1,18 @@
 #include "Hodlong.hpp"
 namespace bpfish{
-    ACTION hodlong::buy(name buyer, uint64_t storage_id) {
-        auto aiter= _users.find(buyer.value);
+    ACTION hodlong::addas(const name authority, uint64_t storage_id, name seeder) {
         auto iterator = _storage.find(storage_id);
-        eosio_assert(aiter!= _users.end(), "User does not exist");
-        eosio_assert(iterator != _storage.end(), "The bid not found");
-        eosio_assert(iterator->approved_seeders.size() <= iterator->max_seeders,
-                     "The storage object has the max amount of seeders");
+        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
+        eosio_assert((authority == _self || authority == iterator->account),
+                     "User does not have the authority to add to the the approved seeder");
+        for (int i=0; i < iterator->approved_seeders.size(); i++)
+        {
+            eosio_assert(iterator->approved_seeders[i].value != seeder.value, "User is already an approved seeder");
+        }
         _storage.modify(iterator, get_self(), [&](auto &u) {
-            u.approved_seeders.push_back(buyer);
+            u.approved_seeders.push_back(seeder);
         });
-        _users.modify(aiter, get_self(), [&](auto &u) {
-            u.seeded_objects.push_back(storage_id);
-        });
-    }
 
-
-    ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
-            vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
-            uint64_t bandwidth_divisor) {
-        require_auth(account);
-        auto iterator = _users.find(account.value);
-        eosio_assert(iterator != _users.end(), "User does not exist.");
-
-        uint64_t storage_id = _storage.available_primary_key();
-        _storage.emplace(get_self(), [&](auto &s) {
-            s.storage_id = storage_id;
-            s.account = account;
-            s.filename = filename;
-            s.file_size = file_size;
-            s.checksum = checksum;
-            s.max_seeders = max_seeders;
-            s.self_host = self_host;
-            s.secure = secure;
-            s.bandwidth_used = 0;
-            s.approved_seeders = vector<name>();
-            s.bandwidth_cost = bandwidth_cost;
-            s.bandwidth_divisor = bandwidth_divisor;
-        });
-        _users.modify(iterator, account, [&](auto &u) {
-            u.owned_objects.push_back(storage_id);
-        });
     }
     ACTION hodlong::addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount) {
         require_auth(authority);
@@ -93,11 +65,11 @@ namespace bpfish{
 
                     if (pstat_itr->pending_stats[v1].to == pstat_itr->pending_stats[v3].to &&
                         pstat_itr->pending_stats[v1].from == pstat_itr->pending_stats[v3].from &&
-                            pstat_itr->pending_stats[v1].to != pstat_itr->pending_stats[v3].from &&
-                            pstat_itr->pending_stats[v1].from != pstat_itr->pending_stats[v3].to &&
+                        pstat_itr->pending_stats[v1].to != pstat_itr->pending_stats[v3].from &&
+                        pstat_itr->pending_stats[v1].from != pstat_itr->pending_stats[v3].to &&
                         pstat_itr->pending_stats[v1].authority != pstat_itr->pending_stats[v3].authority &&
                         pstat_itr->pending_stats[v1].amount !=0 && pstat_itr->pending_stats[v2].amount != 0) {
-                            uint64_t verified_amount;
+                        uint64_t verified_amount;
                         if (pstat_itr->pending_stats[v1].amount == pstat_itr->pending_stats[v3].amount) {
                             verified_amount = pstat_itr->pending_stats[v1].amount;
                             _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
@@ -190,7 +162,6 @@ namespace bpfish{
             }
         }
     }
-
     ACTION hodlong::adduser(const name account, string &pub_key) {
         require_auth(account);
         auto iterator = _users.find(account.value);
@@ -203,33 +174,45 @@ namespace bpfish{
         });
 
     }
-    ACTION hodlong::updateuser(const name account, string &pub_key){
+    ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
+                              vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
+                              uint64_t bandwidth_divisor) {
         require_auth(account);
         auto iterator = _users.find(account.value);
-        eosio_assert(iterator != _users.end(), "User account does not exist");
+        eosio_assert(iterator != _users.end(), "User does not exist.");
 
-        _users.modify(iterator, get_self(), [&](auto &u) {
-            u.pub_key = pub_key;
+        uint64_t storage_id = _storage.available_primary_key();
+        _storage.emplace(get_self(), [&](auto &s) {
+            s.storage_id = storage_id;
+            s.account = account;
+            s.filename = filename;
+            s.file_size = file_size;
+            s.checksum = checksum;
+            s.max_seeders = max_seeders;
+            s.self_host = self_host;
+            s.secure = secure;
+            s.bandwidth_used = 0;
+            s.approved_seeders = vector<name>();
+            s.bandwidth_cost = bandwidth_cost;
+            s.bandwidth_divisor = bandwidth_divisor;
+        });
+        _users.modify(iterator, account, [&](auto &u) {
+            u.owned_objects.push_back(storage_id);
         });
     }
-
-
-    ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
-        // use explicit naming due to code & receiver originating from eosio.token::transfer
-        
-        if (from == contract_name || to != contract_name)
-            return;
-        require_auth(from);
-        users transfer_users(contract_name, contract_name.value);
-        auto iterator = transfer_users.find(from.value);
-        eosio_assert(iterator != transfer_users.end(), "User account does not exist");
-
-        transfer_users.modify(iterator, contract_name, [&](auto &u) {
-            u.balance += quantity;
-        });
+    ACTION hodlong::removeas(const name authority, uint64_t storage_id, name seeder) {
+        auto iterator = _storage.find(storage_id);
+        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
+        eosio_assert((authority == _self || authority == iterator->account || authority == seeder),
+                     "User does not have the authority to remove the approved seeder");
+        for (int i=0; i < iterator->approved_seeders.size(); i++)
+        {
+            if (iterator->approved_seeders[i].value == seeder.value){
+                _storage.erase(iterator);
+            }
+        }
 
     }
-
     ACTION hodlong::removefunds(name to, asset quantity) {
         auto user = _users.find(to.value);
         eosio_assert(user != _users.end(), "User does not exist");
@@ -245,7 +228,6 @@ namespace bpfish{
                std::make_tuple(contract_name, to, transfer_amount, std::string("Transfer of funds out of hodlong account"))
         ).send();
     }
-
     ACTION hodlong::removeo(const name authority, uint64_t storage_id) {
         require_auth(_self);
         auto iterator = _storage.find(storage_id);
@@ -253,32 +235,43 @@ namespace bpfish{
 
         _storage.erase(iterator);
     }
-    ACTION hodlong::removeas(const name authority, uint64_t storage_id, name seeder) {
+    ACTION hodlong::seed(name buyer, uint64_t storage_id) {
+        auto aiter= _users.find(buyer.value);
         auto iterator = _storage.find(storage_id);
-        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
-        eosio_assert((authority == _self || authority == iterator->account || authority == seeder),
-                "User does not have the authority to remove the approved seeder");
-        for (int i=0; i < iterator->approved_seeders.size(); i++)
-        {
-            if (iterator->approved_seeders[i].value == seeder.value){
-                _storage.erase(iterator);
-            }
-        }
-        
-    }
-    ACTION hodlong::addas(const name authority, uint64_t storage_id, name seeder) {
-        auto iterator = _storage.find(storage_id);
-        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
-        eosio_assert((authority == _self || authority == iterator->account),
-                     "User does not have the authority to add to the the approved seeder");
-        for (int i=0; i < iterator->approved_seeders.size(); i++)
-        {
-            eosio_assert(iterator->approved_seeders[i].value != seeder.value, "User is already an approved seeder");
-        }
+        eosio_assert(aiter!= _users.end(), "User does not exist");
+        eosio_assert(iterator != _storage.end(), "The bid not found");
+        eosio_assert(iterator->approved_seeders.size() <= iterator->max_seeders,
+                     "The storage object has the max amount of seeders");
         _storage.modify(iterator, get_self(), [&](auto &u) {
-            u.approved_seeders.push_back(seeder);
+            u.approved_seeders.push_back(buyer);
+        });
+        _users.modify(aiter, get_self(), [&](auto &u) {
+            u.seeded_objects.push_back(storage_id);
+        });
+    }
+    ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
+        // use explicit naming due to code & receiver originating from eosio.token::transfer
+
+        if (from == contract_name || to != contract_name)
+            return;
+        require_auth(from);
+        users transfer_users(contract_name, contract_name.value);
+        auto iterator = transfer_users.find(from.value);
+        eosio_assert(iterator != transfer_users.end(), "User account does not exist");
+
+        transfer_users.modify(iterator, contract_name, [&](auto &u) {
+            u.balance += quantity;
         });
 
+    }
+    ACTION hodlong::updateuser(const name account, string &pub_key){
+        require_auth(account);
+        auto iterator = _users.find(account.value);
+        eosio_assert(iterator != _users.end(), "User account does not exist");
+
+        _users.modify(iterator, get_self(), [&](auto &u) {
+            u.pub_key = pub_key;
+        });
     }
 }
 
@@ -289,7 +282,7 @@ extern "C" {
     }
     else if (code == receiver) {
         switch (action) {
-            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (buy)(createobj)(addstats)(adduser)(updateuser)(transfer));
+            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (seed)(createobj)(addstats)(adduser)(updateuser)(transfer));
         }
     }
     eosio_exit(0);

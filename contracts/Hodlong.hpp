@@ -14,9 +14,8 @@ namespace bpfish{
     CONTRACT hodlong : public eosio::contract{
         public:
             hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
-               eosio::contract(receiver, code, ds), _storage(receiver, code.value),
-                _pstats(receiver, code.value), _users(receiver, code.value), _pstats_storage(receiver, code.value),
-                _stats(receiver, code.value)
+               eosio::contract(receiver, code, ds), _pstats(receiver, code.value), _pstats_storage(receiver, code.value),
+                _stats(receiver, code.value),_storage(receiver, code.value), _users(receiver, code.value)
             {}
             // Global contract name for transfers from eosio.token
             name contract_name = name("hodlong");
@@ -92,29 +91,33 @@ namespace bpfish{
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t,
                     &pstats_t::by_storage_id>>> pstats_storage;
 
-            ACTION buy(name buyer, uint64_t storage_id);
+            //add an approved seeder
+            ACTION addas(name authority, uint64_t storage_id, name seeder);
+            // main stat collating and balance transfer method
+            ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
+            // add new user to the account/pubkey ledger
+            ACTION adduser(const name account, string &pub_key);
+            // create new storage object
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
                     vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
                     uint64_t bandwidth_divisor);
-            // main stat collating and balance transfer method
-            ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
-            ACTION adduser(const name account, string &pub_key);
-            // action from eosio.token to contract
-            ACTION transfer(name from, name to, asset quantity, string memo);
-            ACTION removefunds(name to, asset quantity);
-            ACTION updateuser(name account, string &pub_key);
-            //remove object
-            ACTION removeo(name authority, uint64_t storage_id);
             //remove approved seeder from object
             ACTION removeas(name authority, uint64_t storage_id, name seeder);
-            //add an approved seeder
-            ACTION addas(name authority, uint64_t storage_id, name seeder);
+            // Remove funds from account to users account
+            ACTION removefunds(name to, asset quantity);
+            // Remove object
+            ACTION removeo(name authority, uint64_t storage_id);
+            // Accept an object to be seeded by a paid user
+            ACTION seed(name buyer, uint64_t storage_id);
+            // action from eosio.token to contract
+            ACTION transfer(name from, name to, asset quantity, string memo);
+            // Update users pubkey
+            ACTION updateuser(name account, string &pub_key);
 
-            storage _storage;
             pstats _pstats;
-            users _users;
             pstats_storage _pstats_storage;
             stats _stats;
-
+            storage _storage;
+            users _users;
     };
 }
