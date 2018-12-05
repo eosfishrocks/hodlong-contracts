@@ -18,7 +18,7 @@ namespace bpfish{
                 _pstats(receiver, code.value), _users(receiver, code.value), _pstats_storage(receiver, code.value),
                 _stats(receiver, code.value)
             {}
-            // Global contract nname for transfers frpm eosio.token
+            // Global contract name for transfers from eosio.token
             name contract_name = name("hodlong");
             string symbol_name = "SYS";
 
@@ -40,7 +40,7 @@ namespace bpfish{
                 string filename;
                 string file_size;
                 string checksum;
-                vector <name> accepted_seeders;
+                vector <name> approved_seeders;
                 uint64_t max_seeders;
                 uint64_t bandwidth_used;
                 bool self_host;
@@ -50,7 +50,7 @@ namespace bpfish{
                 uint64_t primary_key() const { return storage_id; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
-                    (accepted_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost)(bandwidth_divisor));
+                    (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost)(bandwidth_divisor));
             };
             // Generic Stat Object
             TABLE stat {
@@ -93,14 +93,19 @@ namespace bpfish{
 
             ACTION buy(name buyer, uint64_t storage_id);
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
-                    vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
+                    vector<name> approved_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
                     uint64_t bandwidth_divisor);
             ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
             ACTION adduser(const name account, string &pub_key);
             ACTION transfer(name from, name to, asset quantity, string memo);
             ACTION removefunds(name to, asset quantity);
             ACTION updateuser(name account, string &pub_key);
-            ACTION aremove(name authority, uint64_t storage_id);
+            //remove object
+            ACTION removeo(name authority, uint64_t storage_id);
+            //remove approved seeder from object
+            ACTION removeas(name authority, uint64_t storage_id, name seeder);
+            //add an approved seeder
+            ACTION addas(name authority, uint64_t storage_id, name seeder);
 
             storage _storage;
             pstats _pstats;

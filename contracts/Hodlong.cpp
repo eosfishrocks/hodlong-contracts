@@ -5,10 +5,10 @@ namespace bpfish{
         auto iterator = _storage.find(storage_id);
         eosio_assert(aiter!= _users.end(), "User does not exist");
         eosio_assert(iterator != _storage.end(), "The bid not found");
-        eosio_assert(iterator->accepted_seeders.size() <= iterator->max_seeders,
+        eosio_assert(iterator->approved_seeders.size() <= iterator->max_seeders,
                      "The storage object has the max amount of seeders");
         _storage.modify(iterator, get_self(), [&](auto &u) {
-            u.accepted_seeders.push_back(buyer);
+            u.approved_seeders.push_back(buyer);
         });
         _users.modify(aiter, get_self(), [&](auto &u) {
             u.seeded_objects.push_back(storage_id);
@@ -17,7 +17,7 @@ namespace bpfish{
 
 
     ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
-            vector<name> accepted_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
+            vector<name> approved_seeders, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost,
             uint64_t bandwidth_divisor) {
         require_auth(account);
         auto iterator = _users.find(account.value);
@@ -33,7 +33,7 @@ namespace bpfish{
             s.max_seeders = max_seeders;
             s.self_host = self_host;
             s.bandwidth_used = 0;
-            s.accepted_seeders = vector<name>();
+            s.approved_seeders = vector<name>();
             s.bandwidth_cost = bandwidth_cost;
             s.bandwidth_divisor = bandwidth_divisor;
         });
@@ -51,9 +51,9 @@ namespace bpfish{
         eosio_assert(storage_iter != _storage.end(), "The storage id is not found");
 
 
-        for (int s0 = 0; s0 < storage_iter->accepted_seeders.size(); s0++){
-            if (storage_iter->accepted_seeders[s0] == from) paid_account=from;
-            if (storage_iter->accepted_seeders[s0] == to) paid_account=to;{
+        for (int s0 = 0; s0 < storage_iter->approved_seeders.size(); s0++){
+            if (storage_iter->approved_seeders[s0] == from) paid_account=from;
+            if (storage_iter->approved_seeders[s0] == to) paid_account=to;{
                 stat client_stat = {authority, from, to, amount, date};
             }
         }
@@ -158,6 +158,7 @@ namespace bpfish{
                                                     if (user_iter->balance < paid_amount_s){
                                                         u.balance = asset(0, symbol(symbol_code(symbol_name),4));
                                                     }
+                                                    eosio_assert(u.balance > paid_amount_s, "User does not have the balance to pay");
                                                     u.balance -= paid_amount_s;
                                                 }
                                                 else {
@@ -244,12 +245,39 @@ namespace bpfish{
         ).send();
     }
 
-    ACTION hodlong::aremove(const name authority, uint64_t storage_id) {
+    ACTION hodlong::removeo(const name authority, uint64_t storage_id) {
         require_auth(_self);
         auto iterator = _storage.find(storage_id);
         eosio_assert(iterator != _storage.end(), "storage_id does not exist");
 
         _storage.erase(iterator);
+    }
+    ACTION hodlong::removeas(const name authority, uint64_t storage_id, name seeder) {
+        auto iterator = _storage.find(storage_id);
+        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
+        eosio_assert((authority == _self || authority == iterator->account || authority == seeder),
+                "User does not have the authority to remove the approved seeder");
+        for (int i=0; i < iterator->approved_seeders.size(); i++)
+        {
+            if (iterator->approved_seeders[i].value == seeder.value){
+                _storage.erase(iterator);
+            }
+        }
+        
+    }
+    ACTION hodlong::addas(const name authority, uint64_t storage_id, name seeder) {
+        auto iterator = _storage.find(storage_id);
+        eosio_assert(iterator != _storage.end(), "storage_id does not exist");
+        eosio_assert((authority == _self || authority == iterator->account || authority == seeder),
+                     "User does not have the authority to remove the approved seeder");
+        for (int i=0; i < iterator->approved_seeders.size(); i++)
+        {
+            eosio_assert(iterator->approved_seeders[i].value != seeder.value, "User is already an approved seeder");
+        }
+        _storage.modify(iterator, get_self(), [&](auto &u) {
+            u.approved_seeders.push_back(seeder);
+        });
+
     }
 }
 
