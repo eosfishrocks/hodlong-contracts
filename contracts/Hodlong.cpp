@@ -282,7 +282,7 @@ extern "C" {
     }
     else if (code == receiver) {
         switch (action) {
-            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (seed)(createobj)(addstats)(adduser)(updateuser)(transfer));
+            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (seed)(createobj)(addstats)(adduser)(updateuser));
         }
     }
     eosio_exit(0);

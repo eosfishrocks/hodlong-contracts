@@ -91,17 +91,17 @@ namespace bpfish{
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t,
                     &pstats_t::by_storage_id>>> pstats_storage;
 
-            //add an approved seeder
+            // Add an approved seeder
             ACTION addas(name authority, uint64_t storage_id, name seeder);
-            // main stat collating and balance transfer method
+            // Main stat collating and balance transfer method
             ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
-            // add new user to the account/pubkey ledger
+            // Add new user to the account/pubkey ledger
             ACTION adduser(const name account, string &pub_key);
-            // create new storage object
+            // Create new storage object
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
                     vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
                     uint64_t bandwidth_divisor);
-            //remove approved seeder from object
+            // Remove approved seeder from object
             ACTION removeas(name authority, uint64_t storage_id, name seeder);
             // Remove funds from account to users account
             ACTION removefunds(name to, asset quantity);
