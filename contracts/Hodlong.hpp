@@ -1,8 +1,6 @@
 #pragma once
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/asset.hpp>
-#include <eosiolib/singleton.hpp>
-#include <eosiolib/print.hpp>
 #include <eosiolib/symbol.hpp>
 
 
