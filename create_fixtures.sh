@@ -35,8 +35,8 @@ cleos push action eosio.token transfer '["usera", "hodlong", "10000.0000 SYS", "
 
 cleos push action hodlong createobj '["usera", "test", "1000", "test",[], 3, 0, 0, 1, 10000 ]' -p usera@active
 
-cleos push action hodlong buy '["userb", 0]' -p userb@active
-cleos push action hodlong buy '["trackerusera", 0]' -p trackerusera@active
+cleos push action hodlong seed '["userb", 0]' -p userb@active
+cleos push action hodlong seed '["trackerusera", 0]' -p trackerusera@active
 
 cleos push action hodlong addstats '["userb", "userb", "trackerusera", 0 ,1000000]' -p userb@active
 cleos push action hodlong addstats '["trackerusera", "userb", "trackerusera", 0 ,1000000]' -p trackerusera@active
