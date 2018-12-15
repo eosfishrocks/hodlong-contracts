@@ -12,8 +12,8 @@ namespace bpfish{
     CONTRACT hodlong : public eosio::contract{
         public:
             hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
-               eosio::contract(receiver, code, ds), _pstats(receiver, code.value), _pstats_storage(receiver, code.value),
-                _stats(receiver, code.value),_storage(receiver, code.value), _users(receiver, code.value)
+               eosio::contract(receiver, code, ds), _pstats(receiver, code.value), _stats(receiver, code.value),
+                _storage(receiver, code.value), _users(receiver, code.value)
             {}
             // Global contract name for transfers from eosio.token
             name contract_name = name("hodlong");
@@ -44,11 +44,15 @@ namespace bpfish{
                 bool secure;
                 uint64_t bandwidth_cost;
                 uint64_t bandwidth_divisor;
+                // Outstanding seeds for
+                uint64_t oseeds;
 
                 uint64_t primary_key() const { return storage_id; }
+                uint64_t need_seeds() const { return oseeds; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
-                    (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(secure)(bandwidth_cost)(bandwidth_divisor));
+                    (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(secure)(bandwidth_cost)
+                    (bandwidth_divisor)(oseeds));
             };
             // Generic Stat Object
             TABLE stat {
@@ -82,12 +86,13 @@ namespace bpfish{
                 EOSLIB_SERIALIZE(pstats_t, (pstats_id)(storageid)(pending_stats));
             };
 
-            typedef multi_index< "users"_n, users_t > users;
-            typedef multi_index< "stats"_n, stats_t > stats;
-            typedef multi_index< "pstats"_n, pstats_t > pstats;
-            typedef multi_index< "storage"_n, storage_t > storage;
+
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t,
-                    &pstats_t::by_storage_id>>> pstats_storage;
+                &pstats_t::by_storage_id>>> pstats;
+            typedef multi_index< "stats"_n, stats_t > stats;
+            typedef multi_index< "storage"_n, storage_t, indexed_by<"oseeds"_n, const_mem_fun<storage_t, uint64_t,
+                &storage_t::need_seeds>>> storage;
+            typedef multi_index< "users"_n, users_t > users;
 
             // Add an approved seeder
             ACTION addas(name authority, uint64_t storage_id, name seeder);
@@ -113,7 +118,6 @@ namespace bpfish{
             ACTION updateuser(name account, string &pub_key);
 
             pstats _pstats;
-            pstats_storage _pstats_storage;
             stats _stats;
             storage _storage;
             users _users;

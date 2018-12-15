@@ -30,16 +30,16 @@ namespace bpfish{
                 stat client_stat = {authority, from, to, amount, date};
             }
         }
-        auto pstat_itr = _pstats_storage.lower_bound(storage_id);
+        auto pstat_itr = _pstats.lower_bound(storage_id);
 
         stat client_stat = {authority, from, to, amount, date};
-        if (pstat_itr == _pstats_storage.end() && paid_account) {
+        if (pstat_itr == _pstats.end() && paid_account) {
             _pstats.emplace(get_self(), [&](auto &tmp_stat) {
                 tmp_stat.storageid = storage_id;
                 tmp_stat.pending_stats.push_back(client_stat);
             });
         } else if (paid_account){
-            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &tmp_stat) {
+            _pstats.modify(pstat_itr, get_self(), [&](auto &tmp_stat) {
                 tmp_stat.pending_stats.push_back(client_stat);
             });
             found_stat = true;
@@ -72,7 +72,7 @@ namespace bpfish{
                         uint64_t verified_amount;
                         if (pstat_itr->pending_stats[v1].amount == pstat_itr->pending_stats[v3].amount) {
                             verified_amount = pstat_itr->pending_stats[v1].amount;
-                            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                            _pstats.modify(pstat_itr, get_self(), [&](auto &s) {
                                 s.pending_stats[v1].amount = 0;
                                 s.pending_stats[v3].amount = 0;
                             });
@@ -80,14 +80,14 @@ namespace bpfish{
                             pending_deletion.push_back(v3);
                         } else if (pstat_itr->pending_stats[v1].amount > pstat_itr->pending_stats[v3].amount) {
                             verified_amount = pstat_itr->pending_stats[v3].amount;
-                            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                            _pstats.modify(pstat_itr, get_self(), [&](auto &s) {
                                 s.pending_stats[v1].amount -= pstat_itr->pending_stats[v3].amount;
                                 s.pending_stats[v3].amount = 0;
                             });
                             pending_deletion.push_back(v3);
                         } else if (pstat_itr->pending_stats[v1].amount < pstat_itr->pending_stats[v3].amount) {
                             verified_amount = pstat_itr->pending_stats[v1].amount;
-                            _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                            _pstats.modify(pstat_itr, get_self(), [&](auto &s) {
                                 s.pending_stats[v3].amount -= pstat_itr->pending_stats[v1].amount;
                                 s.pending_stats[v1].amount = 0;
                             });
@@ -152,11 +152,11 @@ namespace bpfish{
                 }
                 // delete empty stats in pstats
                 for (int d = 0;  d < pending_deletion.size(); d++){
-                    _pstats_storage.modify(pstat_itr, get_self(), [&](auto &s) {
+                    _pstats.modify(pstat_itr, get_self(), [&](auto &s) {
                         s.pending_stats.erase(s.pending_stats.begin() + pending_deletion[d] - d );
                     });
                     if (pstat_itr->pending_stats.size() == 0){
-                        _pstats_storage.erase(pstat_itr);
+                        _pstats.erase(pstat_itr);
                     }
                 }
             }
@@ -195,6 +195,7 @@ namespace bpfish{
             s.approved_seeders = vector<name>();
             s.bandwidth_cost = bandwidth_cost;
             s.bandwidth_divisor = bandwidth_divisor;
+            s.oseeds = max_seeders;
         });
         _users.modify(iterator, account, [&](auto &u) {
             u.owned_objects.push_back(storage_id);
@@ -242,11 +243,14 @@ namespace bpfish{
         eosio_assert(iterator != _storage.end(), "The bid not found");
         eosio_assert(iterator->approved_seeders.size() <= iterator->max_seeders,
                      "The storage object has the max amount of seeders");
-        _storage.modify(iterator, get_self(), [&](auto &u) {
-            u.approved_seeders.push_back(buyer);
+        eosio_assert(!iterator->self_host, "Object owner controls seed management");
+        
+        _storage.modify(iterator, get_self(), [&](auto &s) {
+            s.approved_seeders.push_back(buyer);
+            s.oseeds -=  1;
         });
         _users.modify(aiter, get_self(), [&](auto &u) {
-            u.seeded_objects.push_back(storage_id);
+            u.seeded_objects.push_back(storage_id);;
         });
     }
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
