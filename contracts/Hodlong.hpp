@@ -2,6 +2,24 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/asset.hpp>
 #include <eosiolib/symbol.hpp>
+#include <eosiolib/transaction.hpp>
+
+#ifndef CONTRACT_NAME
+#define CONTRACT_NAME "hodlong"
+#endif
+
+#ifndef SYMBOL_NAME
+#define SYMBOL_NAME "SYS"
+#endif
+
+
+#ifndef TRANSFER_DELAY
+#define TRANSFER_DELAY 60*60
+#endif
+
+#ifndef TOKEN_CONTRACT
+#define TOKEN_CONTRACT "eosio.token"
+#endif
 
 
 using namespace eosio;
@@ -15,9 +33,6 @@ namespace bpfish{
                eosio::contract(receiver, code, ds), _pstats(receiver, code.value), _stats(receiver, code.value),
                 _storage(receiver, code.value), _users(receiver, code.value)
             {}
-            // Global contract name for transfers from eosio.token
-            name contract_name = name("hodlong");
-            string symbol_name = "SYS";
 
             TABLE users_t {
                 name account;
@@ -25,10 +40,12 @@ namespace bpfish{
                 asset balance;
                 vector <uint64_t> owned_objects;
                 vector <uint64_t> seeded_objects;
+                vector <name> allowed_storage_providers;
 
                 uint64_t primary_key() const { return account.value; }
 
-                EOSLIB_SERIALIZE(users_t, (account)(pub_key)(balance)(owned_objects)(seeded_objects));
+                EOSLIB_SERIALIZE(users_t, (account)(pub_key)(balance)(owned_objects)(seeded_objects)
+                    (allowed_storage_providers));
             };
 
             TABLE storage_t {
@@ -44,7 +61,7 @@ namespace bpfish{
                 bool secure;
                 uint64_t bandwidth_cost;
                 uint64_t bandwidth_divisor;
-                // Outstanding seeds for
+                // Open seeds
                 uint64_t oseeds;
 
                 uint64_t primary_key() const { return storage_id; }
@@ -94,6 +111,8 @@ namespace bpfish{
                 &storage_t::need_seeds>>> storage;
             typedef multi_index< "users"_n, users_t > users;
 
+            // Add allowed
+            ACTION addallowed(const name authority, const name sp);
             // Add an approved seeder
             ACTION addas(name authority, uint64_t storage_id, name seeder);
             // Main stat collating and balance transfer method

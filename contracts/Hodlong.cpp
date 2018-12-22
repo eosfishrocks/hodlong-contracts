@@ -1,5 +1,19 @@
 #include "Hodlong.hpp"
 namespace bpfish{
+    ACTION hodlong::addallowed(const name authority, const name sp){
+        require_auth(authority);
+        auto iterator = _users.find(authority.value);
+        eosio_assert(iterator != _users.end(), "User id does not exist");
+
+        for (int i=0; i < iterator->allowed_storage_providers.size(); i++)
+        {
+            eosio_assert(iterator->allowed_storage_providers[i].value != sp.value, "User already has storage provider");
+        }
+        _users.modify(iterator, get_self(), [&](auto &u) {
+            u.allowed_storage_providers.push_back(sp);
+        });
+
+    }
     ACTION hodlong::addas(const name authority, uint64_t storage_id, name seeder) {
         auto iterator = _storage.find(storage_id);
         eosio_assert(iterator != _storage.end(), "storage_id does not exist");
@@ -121,7 +135,7 @@ namespace bpfish{
                                         if (stat_iter->amount > storage_iter->bandwidth_divisor){
                                             uint64_t new_balance = stat_iter->amount % storage_iter->bandwidth_divisor;
                                             uint64_t paid_amount = storage_iter->bandwidth_cost * (stat_iter->amount/storage_iter->bandwidth_divisor);
-                                            asset paid_amount_s = asset(stat_iter->amount, symbol(symbol_code(symbol_name),4));
+                                            asset paid_amount_s = asset(stat_iter->amount, symbol(symbol_code(SYMBOL_NAME),4));
 
 
                                             auto user_iter = _users.find(stat_iter->account.value);
@@ -129,7 +143,7 @@ namespace bpfish{
                                             _users.modify(user_iter, get_self(), [&](auto &u) {
                                                 if (stat_iter->negative) {
                                                     if (user_iter->balance < paid_amount_s){
-                                                        u.balance = asset(0, symbol(symbol_code(symbol_name),4));
+                                                        u.balance = asset(0, symbol(symbol_code(SYMBOL_NAME),4));
                                                     }
                                                     eosio_assert(u.balance > paid_amount_s, "User does not have the balance to pay");
                                                     u.balance -= paid_amount_s;
@@ -170,7 +184,7 @@ namespace bpfish{
         _users.emplace(get_self(), [&](auto &u) {
             u.account = account;
             u.pub_key = pub_key;
-            u.balance = asset(0,symbol(symbol_code(symbol_name),4));
+            u.balance = asset(0,symbol(symbol_code(SYMBOL_NAME),4));
         });
 
     }
@@ -220,14 +234,24 @@ namespace bpfish{
         eosio_assert(user->balance <= quantity, "You do not have the required balance to remove the funds");
         asset transfer_amount;
 
-        _users.modify(user, contract_name, [&](auto &u) {
+        _users.modify(user, name(CONTRACT_NAME), [&](auto &u) {
             u.balance -= quantity;
         });
 
-        action(permission_level{contract_name, "active"_n},
-               "eosio.token"_n, "transfer"_n,
-               std::make_tuple(contract_name, to, transfer_amount, std::string("Transfer of funds out of hodlong account"))
-        ).send();
+
+        transaction deferredTrans{};
+
+    deferredTrans.actions.emplace_back(
+            action(permission_level{_self, "removefunds"_n},
+                   name(TOKEN_CONTRACT),
+                   "transfer"_n,
+                   make_tuple(name(CONTRACT_NAME), to, quantity,
+                              string("Transfer of funds out of hodlong account")))
+    );
+
+    deferredTrans.delay_sec = TRANSFER_DELAY;
+        uint128_t sender_id = (uint128_t(to.value) << 64) | now();
+        deferredTrans.send(sender_id, _self);
     }
     ACTION hodlong::removeo(const name authority, uint64_t storage_id) {
         require_auth(_self);
@@ -256,14 +280,14 @@ namespace bpfish{
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
         // use explicit naming due to code & receiver originating from eosio.token::transfer
 
-        if (from == contract_name || to != contract_name)
+        if (from == name(CONTRACT_NAME) || to != name(CONTRACT_NAME))
             return;
         require_auth(from);
-        users transfer_users(contract_name, contract_name.value);
+        users transfer_users(name(CONTRACT_NAME), name(CONTRACT_NAME).value);
         auto iterator = transfer_users.find(from.value);
         eosio_assert(iterator != transfer_users.end(), "User account does not exist");
 
-        transfer_users.modify(iterator, contract_name, [&](auto &u) {
+        transfer_users.modify(iterator, name(CONTRACT_NAME), [&](auto &u) {
             u.balance += quantity;
         });
 
@@ -281,7 +305,7 @@ namespace bpfish{
 
 extern "C" {
 [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-    if (action == "transfer"_n.value && code == "eosio.token"_n.value) {
+    if (action == "transfer"_n.value && code == name(TOKEN_CONTRACT).value) {
         eosio::execute_action(name(receiver), name(code), &bpfish::hodlong::transfer);
     }
     else if (code == receiver) {
