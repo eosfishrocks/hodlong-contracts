@@ -215,6 +215,16 @@ namespace bpfish{
             u.owned_objects.push_back(storage_id);
         });
     }
+    ACTION hodlong::modifysp(const name user, bool provider){
+        require_auth(_self);
+        auto iterator = _users.find(user.value);
+        eosio_assert(iterator != _users.end(), "User account does not exist");
+
+        _users.modify(iterator, get_self(), [&](auto &u) {
+            u.provider = provider;
+        });
+
+    }
     ACTION hodlong::removeas(const name authority, uint64_t storage_id, name seeder) {
         auto iterator = _storage.find(storage_id);
         eosio_assert(iterator != _storage.end(), "storage_id does not exist");
@@ -278,11 +288,12 @@ namespace bpfish{
         });
     }
     ACTION hodlong::transfer(const name from,const  name to, asset quantity, string memo) {
-        // use explicit naming due to code & receiver originating from eosio.token::transfer
-
-        if (from == name(CONTRACT_NAME) || to != name(CONTRACT_NAME))
-            return;
         require_auth(from);
+        eosio_assert(from != name(CONTRACT_NAME), "From field must not originate from this contract.");
+        eosio_assert(to == name(CONTRACT_NAME), "To field must be this contract.");
+        eosio_assert(from != name("eosio.stake"), "Tokens cannot be staked");
+
+        // use new multi index variable due to code & receiver originating from eosio.token::transfer
         users transfer_users(name(CONTRACT_NAME), name(CONTRACT_NAME).value);
         auto iterator = transfer_users.find(from.value);
         eosio_assert(iterator != transfer_users.end(), "User account does not exist");

@@ -41,11 +41,13 @@ namespace bpfish{
                 vector <uint64_t> owned_objects;
                 vector <uint64_t> seeded_objects;
                 vector <name> allowed_storage_providers;
+                bool provider;
 
                 uint64_t primary_key() const { return account.value; }
+                uint64_t is_provider() const { return provider; };
 
                 EOSLIB_SERIALIZE(users_t, (account)(pub_key)(balance)(owned_objects)(seeded_objects)
-                    (allowed_storage_providers));
+                    (allowed_storage_providers)(provider));
             };
 
             TABLE storage_t {
@@ -109,7 +111,8 @@ namespace bpfish{
             typedef multi_index< "stats"_n, stats_t > stats;
             typedef multi_index< "storage"_n, storage_t, indexed_by<"oseeds"_n, const_mem_fun<storage_t, uint64_t,
                 &storage_t::need_seeds>>> storage;
-            typedef multi_index< "users"_n, users_t > users;
+            typedef multi_index< "users"_n, users_t, indexed_by<"provider"_n, const_mem_fun<users_t, uint64_t,
+                    &users_t::is_provider>>> users;
 
             // Add allowed
             ACTION addallowed(const name authority, const name sp);
@@ -123,6 +126,7 @@ namespace bpfish{
             ACTION createobj(name account, string &filename, string &filesize, string &checksum,
                     vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
                     uint64_t bandwidth_divisor);
+            ACTION modifysp(const name user, bool provider);
             // Remove approved seeder from object
             ACTION removeas(name authority, uint64_t storage_id, name seeder);
             // Remove funds from account to users account
