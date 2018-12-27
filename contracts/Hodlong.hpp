@@ -65,13 +65,16 @@ namespace bpfish{
                 uint64_t bandwidth_divisor;
                 // Open seeds
                 uint64_t oseeds;
+                uint64_t poscheck=0;
+                name pos_verifier;
 
                 uint64_t primary_key() const { return storage_id; }
                 uint64_t need_seeds() const { return oseeds; }
+                uint64_t pos_check() const { return poscheck; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)(checksum)
                     (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(secure)(bandwidth_cost)
-                    (bandwidth_divisor)(oseeds));
+                    (bandwidth_divisor)(oseeds)(poscheck)(pos_verifier));
             };
             // Generic Stat Object
             TABLE stat {
