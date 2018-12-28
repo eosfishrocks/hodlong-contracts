@@ -33,7 +33,7 @@ cleos push action hodlong adduser '["userc", "Ny4saCco9DyYg7YFN8sJjOfmR5i6P+602J
 
 cleos push action eosio.token transfer '["usera", "hodlong", "10000.0000 SYS", "m"]' -p usera@active
 
-cleos push action hodlong createobj '["usera", "test", "1000", "test",[], 3, 0, 0, 1, 10000 ]' -p usera@active
+cleos push action hodlong createobj '["usera", "test", "1000", [], [], 3, 0, 1, 10000 ]' -p usera@active
 
 cleos push action hodlong seed '["userb", 0]' -p userb@active
 cleos push action hodlong seed '["trackerusera", 0]' -p trackerusera@active
