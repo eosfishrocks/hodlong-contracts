@@ -14,17 +14,17 @@ namespace bpfish{
         });
 
     }
-    ACTION hodlong::addas(const name authority, uint64_t storage_id, name seeder) {
+    ACTION hodlong::addas(const name authority, uint64_t storage_id, name provider) {
         auto iterator = _storage.find(storage_id);
         eosio_assert(iterator != _storage.end(), "storage_id does not exist");
         eosio_assert((authority == _self || authority == iterator->account),
                      "User does not have the authority to add to the the approved seeder");
         for (int i=0; i < iterator->approved_seeders.size(); i++)
         {
-            eosio_assert(iterator->approved_seeders[i].value != seeder.value, "User is already an approved seeder");
+            eosio_assert(iterator->approved_seeders[i].value != provider.value, "User is already an approved seeder");
         }
         _storage.modify(iterator, get_self(), [&](auto &u) {
-            u.approved_seeders.push_back(seeder);
+            u.approved_seeders.push_back(provider);
         });
 
     }
@@ -188,9 +188,8 @@ namespace bpfish{
         });
 
     }
-    ACTION hodlong::createobj(name account, string &filename, string &file_size, string &checksum,
-                              vector<name> approved_seeders, uint64_t max_seeders, bool self_host, bool secure, uint64_t bandwidth_cost,
-                              uint64_t bandwidth_divisor) {
+    ACTION hodlong::createobj(name account, string &filename, string &file_size, vector<name> approved_seeders,
+            vector<name> allowed_users,uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost, uint64_t bandwidth_divisor) {
         require_auth(account);
         auto iterator = _users.find(account.value);
         eosio_assert(iterator != _users.end(), "User does not exist.");
@@ -201,10 +200,8 @@ namespace bpfish{
             s.account = account;
             s.filename = filename;
             s.file_size = file_size;
-            s.checksum = checksum;
             s.max_seeders = max_seeders;
             s.self_host = self_host;
-            s.secure = secure;
             s.bandwidth_used = 0;
             s.approved_seeders = vector<name>();
             s.bandwidth_cost = bandwidth_cost;
