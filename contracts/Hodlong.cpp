@@ -135,7 +135,7 @@ namespace bpfish{
                                         if (stat_iter->amount > storage_iter->bandwidth_divisor){
                                             uint64_t new_balance = stat_iter->amount % storage_iter->bandwidth_divisor;
                                             uint64_t paid_amount = storage_iter->bandwidth_cost * (stat_iter->amount/storage_iter->bandwidth_divisor);
-                                            asset paid_amount_s = asset(stat_iter->amount, symbol(symbol_code(SYMBOL_NAME),4));
+                                            asset paid_amount_s = asset(paid_amount, symbol(symbol_code(SYMBOL_NAME),4));
 
 
                                             auto user_iter = _users.find(stat_iter->account.value);
@@ -176,6 +176,24 @@ namespace bpfish{
             }
         }
     }
+    ACTION hodlong::addprovider(name authority, name provider, uint64_t bandwidth_cost, uint64_t bandwidth_divisor, uint64_t storage_cost) {
+        require_auth(authority);
+
+        auto iterator = _users.find(provider.value);
+        eosio_assert(iterator != _users.end(), "User does not exist.");
+        eosio_assert(iterator->provider != true, "Provider is already set for user");
+
+        _providers.emplace(get_self(), [&](auto &p) {
+            p.provider_id= provider;
+            p.bandwidth_cost = bandwidth_cost;
+            p.bandwidth_divisor = bandwidth_divisor;
+            p.storage_cost = storage_cost;
+
+        });
+        _users.modify(iterator, get_self(), [&](auto &u) {
+            u.provider = true;
+        });
+    }
     ACTION hodlong::adduser(const name account, string &pub_key) {
         require_auth(account);
         auto iterator = _users.find(account.value);
@@ -188,8 +206,8 @@ namespace bpfish{
         });
 
     }
-    ACTION hodlong::createobj(name account, string &filename, string &file_size, vector<name> approved_seeders,
-            vector<name> allowed_users,uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost, uint64_t bandwidth_divisor) {
+    ACTION hodlong::createobj(name account, string &filename, string &file_size, vector<name> &approved_seeders,
+            vector<name> &allowed_users,uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost, uint64_t bandwidth_divisor) {
         require_auth(account);
         auto iterator = _users.find(account.value);
         eosio_assert(iterator != _users.end(), "User does not exist.");
@@ -203,12 +221,14 @@ namespace bpfish{
             s.max_seeders = max_seeders;
             s.self_host = self_host;
             s.bandwidth_used = 0;
-            s.approved_seeders = vector<name>();
+            s.approved_seeders = approved_seeders;
             s.bandwidth_cost = bandwidth_cost;
             s.bandwidth_divisor = bandwidth_divisor;
             s.oseeds = max_seeders;
+            s.active = true;
         });
-        _users.modify(iterator, account, [&](auto &u) {
+
+        _users.modify(iterator, get_self(), [&](auto &u) {
             u.owned_objects.push_back(storage_id);
         });
     }
@@ -318,7 +338,7 @@ extern "C" {
     }
     else if (code == receiver) {
         switch (action) {
-            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (seed)(createobj)(addstats)(adduser)(updateuser));
+            EOSIO_DISPATCH_HELPER(bpfish::hodlong, (seed)(createobj)(addstats)(adduser)(addprovider)(updateuser));
         }
     }
     eosio_exit(0);

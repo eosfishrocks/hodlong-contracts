@@ -8,6 +8,11 @@
 #define CONTRACT_NAME "hodlong"
 #endif
 
+#ifndef NULL_PROVIDER
+#define NULL_PROVIDER
+#endif
+
+
 #ifndef SYMBOL_NAME
 #define SYMBOL_NAME "SYS"
 #endif
@@ -30,9 +35,11 @@ namespace bpfish{
     CONTRACT hodlong : public eosio::contract{
         public:
             hodlong( eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds ):
-               eosio::contract(receiver, code, ds), _pstats(receiver, code.value), _stats(receiver, code.value),
-                _storage(receiver, code.value), _users(receiver, code.value)
+               eosio::contract(receiver, code, ds), _providers(receiver, code.value), _pstats(receiver, code.value),
+               _stats(receiver, code.value),_storage(receiver, code.value), _users(receiver, code.value)
             {}
+
+            // #TODO: Add Config singleton
 
             TABLE users_t {
                 name account;
@@ -42,12 +49,26 @@ namespace bpfish{
                 vector <uint64_t> seeded_objects;
                 vector <name> allowed_storage_providers;
                 bool provider;
+                uint64_t max_bandwidth_cost;
+                uint64_t max_bandwidth_divisor;
+                uint64_t max_storage_cost;
 
                 uint64_t primary_key() const { return account.value; }
-                uint64_t is_provider() const { return provider; };
+                uint64_t is_provider() const { return provider; }
 
                 EOSLIB_SERIALIZE(users_t, (account)(pub_key)(balance)(owned_objects)(seeded_objects)
-                    (allowed_storage_providers)(provider));
+                    (allowed_storage_providers)(provider)(max_bandwidth_cost)(max_bandwidth_divisor)(max_storage_cost));
+            };
+
+            TABLE providers_t {
+                name provider_id;
+                uint64_t bandwidth_cost;
+                uint64_t bandwidth_divisor;
+                uint64_t storage_cost;
+
+                uint64_t primary_key() const { return provider_id.value; }
+
+                EOSLIB_SERIALIZE(providers_t, (provider_id)(bandwidth_cost)(bandwidth_divisor)(storage_cost));
             };
 
             TABLE storage_t {
@@ -66,14 +87,16 @@ namespace bpfish{
                 uint64_t oseeds;
                 uint64_t poscheck=0;
                 name pos_verifier;
+                bool active;
+                bool flagged;
 
                 uint64_t primary_key() const { return storage_id; }
                 uint64_t need_seeds() const { return oseeds; }
                 uint64_t pos_check() const { return poscheck; }
 
                 EOSLIB_SERIALIZE(storage_t, (storage_id)(account)(filename)(file_size)
-                    (approved_seeders)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost)
-                    (bandwidth_divisor)(oseeds)(poscheck)(pos_verifier));
+                    (approved_seeders)(allowed_users)(max_seeders)(bandwidth_used)(self_host)(bandwidth_cost)
+                    (bandwidth_divisor)(oseeds)(poscheck)(pos_verifier)(active)(flagged));
             };
             // Generic Stat Object
             TABLE stat {
@@ -107,7 +130,7 @@ namespace bpfish{
                 EOSLIB_SERIALIZE(pstats_t, (pstats_id)(storageid)(pending_stats));
             };
 
-
+            typedef multi_index< "providers"_n, providers_t > providers;
             typedef multi_index< "pstats"_n, pstats_t, indexed_by<"storageid"_n, const_mem_fun<pstats_t, uint64_t,
                 &pstats_t::by_storage_id>>> pstats;
             typedef multi_index< "stats"_n, stats_t > stats;
@@ -148,6 +171,16 @@ namespace bpfish{
              */
             ACTION addstats(const name authority, const name from, const name to, uint64_t storage_id, uint64_t amount);
 
+
+            /**
+            * Action to turn a user into a storage provider
+            * Admins use this actions to add storage providers to the network.
+            *
+            * @param account The account to be added to the hodlong users table.
+            * @param pub_key The public key of the account used for offchain verification
+            */
+            ACTION addprovider(name authority, name provider, uint64_t bandwidth_cost, uint64_t bandwidth_divisor, uint64_t storage_cost);
+
             /**
              * Action to add a user to the hodlong contract.
              * New users use this action to create their account.
@@ -171,14 +204,14 @@ namespace bpfish{
              * @param bandwidth_cost The value the user is willing to pay for the bandwidth on the storage object per divisor.
              * @param bandwidth_divisor The modifier for the bandwidth_cost value. IE: 0.1 SYS/1,000,000,000bytes.
              */
-            ACTION createobj(name account, string &filename, string &filesize, vector<name> approved_seeders,
-                    vector<name> allowed_users, uint64_t max_seeders, bool self_host,  uint64_t bandwidth_cost, uint64_t bandwidth_divisor);
+            ACTION createobj(name account, string &filename, string &filesize, vector<name> &approved_seeders,
+                    vector<name> &allowed_users, uint64_t max_seeders, bool self_host, uint64_t bandwidth_cost, uint64_t bandwidth_divisor);
 
             /**
              * Action to modify the storage providers authority.
              * Admins modify storage providers
              *
-             * @param account The account witg creating the storage object.
+             * @param account The account with creating the storage object.
              * @param provider Sets a user as a provider.
              */
             ACTION modifysp(const name user, bool provider);
@@ -234,6 +267,7 @@ namespace bpfish{
              */
             void transfer(name from, name to, asset quantity, string memo);
 
+            providers _providers;
             pstats _pstats;
             stats _stats;
             storage _storage;
